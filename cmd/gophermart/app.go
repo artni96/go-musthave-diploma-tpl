@@ -17,7 +17,7 @@ func run(cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
-	appLogger, err := logger.InitLogger(cfg.LoggerLevel)
+	appLogger, err := logger.InitLogger(cfg.Debug)
 	if err != nil {
 		log.Fatal("failed to initialize logger")
 	}

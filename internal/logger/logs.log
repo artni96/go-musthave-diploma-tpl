@@ -1,2 +1,16 @@
 {"L":"INFO","T":"2026-04-26T18:01:28.283+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}
 {"L":"INFO","T":"2026-04-26T18:14:27.305+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}
+{"L":"INFO","T":"2026-04-26T18:53:50.560+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}
+{"L":"INFO","T":"2026-04-26T18:56:03.394+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}
+{"L":"INFO","T":"2026-04-26T18:59:04.719+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}
+{"L":"INFO","T":"2026-04-26T18:59:15.311+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}
+{"L":"INFO","T":"2026-04-26T19:00:15.023+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}
+{"L":"INFO","T":"2026-04-26T19:00:40.868+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}
+{"L":"INFO","T":"2026-04-26T19:01:41.297+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}
+{"L":"INFO","T":"2026-04-26T19:03:20.647+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}
+{"L":"INFO","T":"2026-04-26T19:08:31.249+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}
+{"L":"INFO","T":"2026-04-26T19:21:43.942+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}
+{"L":"INFO","T":"2026-04-26T19:26:31.109+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}
+{"L":"INFO","T":"2026-04-26T19:26:50.545+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}
+{"L":"INFO","T":"2026-04-26T19:36:31.860+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}
+{"L":"INFO","T":"2026-04-26T19:37:20.874+0300","C":"gophermart/app.go:29","M":"starting server","server address":"localhost:8081"}

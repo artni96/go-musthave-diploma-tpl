@@ -62,13 +62,17 @@ func RequestLoggerMiddleware(logger *zap.Logger) func(h http.Handler) http.Handl
 	}
 }
 
-func InitLogger(level string) (*zap.Logger, error) {
-	levelMap := map[string]zapcore.Level{
-		"debug": zapcore.DebugLevel,
-		"info":  zapcore.InfoLevel,
-		"warn":  zapcore.WarnLevel,
-		"error": zapcore.ErrorLevel,
-		"fatal": zapcore.FatalLevel,
+func InitLogger(debug bool) (*zap.Logger, error) {
+	//levelMap := map[string]zapcore.Level{
+	//	"debug": zapcore.DebugLevel,
+	//	"info":  zapcore.InfoLevel,
+	//	"warn":  zapcore.WarnLevel,
+	//	"error": zapcore.ErrorLevel,
+	//	"fatal": zapcore.FatalLevel,
+	//}
+	logLevel := zapcore.InfoLevel
+	if debug {
+		logLevel = zapcore.DebugLevel
 	}
 
 	consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
@@ -80,8 +84,8 @@ func InitLogger(level string) (*zap.Logger, error) {
 		return nil, err
 	}
 
-	fileOut := zapcore.NewCore(fileEncoder, zapcore.AddSync(logFile), levelMap[level])
-	stdOut := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), levelMap[level])
+	fileOut := zapcore.NewCore(fileEncoder, zapcore.AddSync(logFile), logLevel)
+	stdOut := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), logLevel)
 
 	loggerCore := zapcore.NewTee(fileOut, stdOut)
 

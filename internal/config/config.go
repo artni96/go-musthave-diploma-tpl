@@ -18,7 +18,7 @@ type Config struct {
 	AccrualSystemAddress string        `env:"ACCRUAL_SYSTEM_ADDRESS"`
 	SecretKey            string        `env:"SECRET_KEY"`
 	TokenExp             time.Duration `env:"TOKEN_EXPIRATION"`
-	LoggerLevel          string        `env:"LOGGER_LEVEL"`
+	Debug                bool          `env:"DEBUG"`
 }
 
 func ParseFlags() (*Config, error) {
@@ -29,7 +29,6 @@ func ParseFlags() (*Config, error) {
 	fs.StringVar(&config.RunAddress, "a", "localhost:8081", "run address")
 	fs.StringVar(&config.DatabaseURI, "d", "", "database URI")
 	fs.StringVar(&config.AccrualSystemAddress, "r", "localhost:8080", "accrual system address")
-	fs.StringVar(&config.LoggerLevel, "l", "Info", "log level")
 
 	err := fs.Parse(os.Args[1:])
 	if err != nil {
@@ -68,11 +67,11 @@ func ParseFlags() (*Config, error) {
 	} else {
 		config.TokenExp = time.Minute * 5
 	}
-	envLoggerLevel, ok := os.LookupEnv("LOGGER_LEVEL")
-	if ok {
-		config.LoggerLevel = envLoggerLevel
+	envDebug, ok := os.LookupEnv("DEBUG")
+	if ok && envDebug == "true" {
+		config.Debug = true
 	} else {
-		config.LoggerLevel = "info"
+		config.Debug = false
 	}
 
 	return config, nil
