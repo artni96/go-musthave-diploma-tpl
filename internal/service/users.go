@@ -2,22 +2,20 @@ package service
 
 import (
 	"context"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
+	"time"
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/repository"
-	"go.uber.org/zap"
+	"github.com/golang-jwt/jwt/v4"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserServiceInterface interface {
-	Create(ctx context.Context, user model.UserCreateRequest) error
+	Create(ctx context.Context, user model.UserCreateRequest) (string, error)
 	Login(ctx context.Context, user model.UserLoginRequest) (model.User, error)
+	BuildJWTString(userID string, cfg *config.Config) (string, error)
 }
 type UserService struct {
 	repository repository.UserRepositoryInterface
@@ -31,27 +29,26 @@ func NewUserService(repository repository.UserRepositoryInterface, app *config.A
 	}
 }
 
-func (s *UserService) Create(ctx context.Context, user model.UserCreateRequest) error {
+func (s *UserService) Create(ctx context.Context, user model.UserCreateRequest) (string, error) {
 	hashedPassword, err := s.hashPassword(user.Password)
 	if err != nil {
-		return err
+		return "", err
 	}
 	user.Password = hashedPassword
-	err = s.repository.Create(ctx, user)
+	userID, err := s.repository.Create(ctx, user)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return userID, nil
 }
 
 func (s *UserService) Login(ctx context.Context, user model.UserLoginRequest) (model.User, error) {
-	hashedPassword, err := s.hashPassword(user.Password)
+	userEntity, err := s.repository.GetByLogin(ctx, user.Login)
 	if err != nil {
 		return model.User{}, err
 	}
-	user.Password = hashedPassword
 
-	userEntity, err := s.repository.Login(ctx, user)
+	err = bcrypt.CompareHashAndPassword([]byte(userEntity.Password), []byte(user.Password))
 	if err != nil {
 		return model.User{}, err
 	}
@@ -59,37 +56,28 @@ func (s *UserService) Login(ctx context.Context, user model.UserLoginRequest) (m
 }
 
 func (s *UserService) hashPassword(password string) (string, error) {
-	key := sha256.Sum256([]byte(s.app.Config.SecretKey))
-	strKey := string(key[:])
-	fmt.Println(strKey)
-	aesblock, err := aes.NewCipher(key[:])
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 	if err != nil {
-		s.app.Logger.Info("failed to create new aesblock", zap.Error(err))
-		return "", fmt.Errorf("failed to create new aesblock: %w", err)
+		return "", fmt.Errorf("failed to hash password: %w", err)
 	}
-
-	aesgcm, err := cipher.NewGCM(aesblock)
-	if err != nil {
-		s.app.Logger.Info("failed to create new aesgcm", zap.Error(err))
-		return "", fmt.Errorf("failed to create new aesgcm: %w", err)
-	}
-
-	nonce := []byte("123456789012")
-	if err != nil {
-		s.app.Logger.Info("failed to generate random nonce", zap.Error(err))
-		return "", fmt.Errorf("failed to generate random nonce: %w", err)
-	}
-
-	dst := aesgcm.Seal(nil, nonce, []byte(password), nil)
-	return base64.StdEncoding.EncodeToString(dst), nil
+	return string(hash), nil
 }
 
-func generateRandom(size int) ([]byte, error) {
-	b := make([]byte, size)
-	_, err := rand.Read(b)
-	if err != nil {
-		return nil, err
-	}
+type Claims struct {
+	jwt.RegisteredClaims
+	UserID string
+}
 
-	return b, nil
+func (s *UserService) BuildJWTString(userID string, cfg *config.Config) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(cfg.TokenExp)),
+		},
+		UserID: userID,
+	})
+	tokenString, err := token.SignedString([]byte(cfg.SecretKey))
+	if err != nil {
+		return "", fmt.Errorf("failed to sign token: %v", err)
+	}
+	return tokenString, nil
 }

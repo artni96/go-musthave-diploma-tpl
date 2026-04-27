@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
@@ -51,7 +52,7 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	err = h.service.Create(*h.ctx, user)
+	userID, err := h.service.Create(*h.ctx, user)
 	if err != nil {
 		if errors.As(err, &repository.ErrUserAlreadyExists) {
 			h.logger.Info("user already exists", zap.String("Login", user.Login), zap.String("layer", "user handler"))
@@ -63,6 +64,15 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
+
+	token, err := h.service.BuildJWTString(userID, h.cfg)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    token,
+		Expires:  time.Now().Add(h.cfg.TokenExp),
+		HttpOnly: true,
+		Path:     "/",
+	})
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 }
@@ -95,7 +105,15 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	fmt.Println("userResponse", userResponse)
+
+	token, err := h.service.BuildJWTString(userResponse.ID, h.cfg)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    token,
+		Expires:  time.Now().Add(h.cfg.TokenExp),
+		HttpOnly: true,
+		Path:     "/",
+	})
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	return
