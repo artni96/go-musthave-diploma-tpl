@@ -10,7 +10,10 @@ import (
 	"time"
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/handler"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/logger"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/repository"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/service"
 	"go.uber.org/zap"
 )
 
@@ -35,14 +38,19 @@ func run(cfg *config.Config) error {
 	}
 	app.Logger.Info("starting server", zap.String("server address", cfg.RunAddress))
 
+	userRepository := repository.NewUserRepository(db, app.Logger)
+	userService := service.NewUserService(userRepository, &app)
+	mainRouter := handler.InitRouter(&ctx, &app, cfg, userRepository, userService)
+
 	newServer := &http.Server{
-		Addr: app.Config.RunAddress,
+		Addr:    app.Config.RunAddress,
+		Handler: mainRouter,
 	}
 
 	go func() {
 		err = newServer.ListenAndServe()
 		if err != nil {
-			appLogger.Fatal("failed to start server", zap.Error(err))
+			app.Logger.Fatal("failed to start server", zap.Error(err))
 		}
 	}()
 
