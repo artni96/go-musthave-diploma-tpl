@@ -1,4 +1,4 @@
-package handler
+package users
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/handler/middlewares"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/repository"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/service"
@@ -26,11 +27,11 @@ type UserHandler struct {
 	cfg        *config.Config
 }
 
-func NewUserHandler(ctx *context.Context, logger *zap.Logger, cfg *config.Config, repository *repository.UserRepository, service *service.UserService) *UserHandler {
+func NewUserHandler(ctx *context.Context, app *config.App, repository *repository.UserRepository, service *service.UserService) *UserHandler {
 	return &UserHandler{
-		logger:     logger,
+		logger:     app.Logger,
 		ctx:        ctx,
-		cfg:        cfg,
+		cfg:        app.Config,
 		repository: repository,
 		service:    service,
 	}
@@ -138,23 +139,17 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func UserRouter(
-	ctx *context.Context,
-	app *config.App,
-	cfg *config.Config,
-
-	userRepository *repository.UserRepository,
-	userService *service.UserService,
-) http.Handler {
+func UserRouter(ctx *context.Context, app *config.App, userRepository *repository.UserRepository, userService *service.UserService) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.Recoverer)
+	r.Use(middlewares.PanicRecoverer(app.Logger))
 	r.Use(middleware.RequestID)
 	r.Use(config.GzipMiddleware)
+	r.Use(middlewares.RequestLoggerMiddleware(app.Logger))
 
-	userHandler := NewUserHandler(ctx, app.Logger, cfg, userRepository, userService)
+	userHandler := NewUserHandler(ctx, app, userRepository, userService)
 
-	r.Route("/api/user", func(r chi.Router) {
+	r.Route("/", func(r chi.Router) {
 		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(fmt.Sprintf(`{"error":"Method is not allowed"}`)))

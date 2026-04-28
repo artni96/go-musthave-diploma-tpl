@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/handler"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/handler/routers"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/logger"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/repository"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/service"
@@ -40,7 +40,7 @@ func run(cfg *config.Config) error {
 
 	userRepository := repository.NewUserRepository(db, app.Logger)
 	userService := service.NewUserService(userRepository, &app)
-	mainRouter := handler.InitRouter(&ctx, &app, cfg, userRepository, userService)
+	mainRouter := routers.InitRouter(&ctx, &app, userRepository, userService)
 
 	newServer := &http.Server{
 		Addr:    app.Config.RunAddress,

@@ -1,4 +1,4 @@
-package handler
+package users
 
 import (
 	"context"
@@ -43,11 +43,11 @@ func initHandler() *UserHandler {
 		log.Fatal(fmt.Errorf("failed to create database driver: %w", err))
 	}
 
-	migrator, err := migrate.NewWithDatabaseInstance("file://../../migrations", "postgres", driver)
+	migrator, err := migrate.NewWithDatabaseInstance("file://../../../migrations", "postgres", driver)
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to initialize test migrator: %w", err))
 	}
-	if err := migrator.Down(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+	if err = migrator.Down(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Fatal(fmt.Errorf("failed to clean up test database: %w", err))
 	}
 	if err := migrator.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
@@ -55,7 +55,7 @@ func initHandler() *UserHandler {
 	}
 	testRepository := repository.NewUserRepository(db, logger)
 	testService := service.NewUserService(testRepository, &app)
-	h := NewUserHandler(&ctx, logger, &cfg, testRepository, testService)
+	h := NewUserHandler(&ctx, &app, testRepository, testService)
 	return h
 }
 
