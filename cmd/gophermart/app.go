@@ -21,7 +21,7 @@ func run(cfg *config.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	db, err := config.InitDBConnection(ctx, cfg)
+	db, err := config.InitDBConnection(ctx, cfg, true)
 	if err != nil {
 		return err
 	}

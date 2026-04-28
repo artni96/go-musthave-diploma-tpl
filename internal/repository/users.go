@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
@@ -29,9 +30,10 @@ func (r *UserRepository) Create(ctx context.Context, user model.UserCreateReques
 	err := r.db.GetContext(ctx, &userID, insertQuery, user.Login, user.Password)
 
 	if err != nil {
-		if err.Error() == "duplicate key value violates unique constraint \"users_login_key\"" {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			r.logger.Info("User already exists", zap.Error(err), zap.String("login", user.Login))
-			return "", fmt.Errorf("%w: %s", ErrUserAlreadyExists, user.Login)
+			return "", ErrUserAlreadyExists
 		}
 		r.logger.Debug("failed to create user", zap.Error(err), zap.String("layer", "user repository"))
 		return "", fmt.Errorf("failed to create user: %w", err)
@@ -47,7 +49,7 @@ func (r *UserRepository) GetByLogin(ctx context.Context, login string) (model.Us
 	err := r.db.GetContext(ctx, &responseEntity, selectQuery, login)
 	if err != nil {
 		r.logger.Debug("user not found", zap.String("login", login), zap.String("layer", "user repository"))
-		return responseEntity, fmt.Errorf("%w: %s", ErrUserNotFound, login)
+		return responseEntity, ErrUserNotFound
 	}
 	return responseEntity, nil
 }

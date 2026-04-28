@@ -14,7 +14,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func InitDBConnection(ctx context.Context, cfg *Config) (*sqlx.DB, error) {
+func InitDBConnection(ctx context.Context, cfg *Config, upgradeDB bool) (*sqlx.DB, error) {
 	db, err := sqlx.Open("pgx", cfg.DatabaseURI)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database connection: %w", err)
@@ -26,9 +26,12 @@ func InitDBConnection(ctx context.Context, cfg *Config) (*sqlx.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to ping database connection: %w", err)
 	}
-	if err := runMigrations(db); err != nil {
-		return nil, err
+	if upgradeDB {
+		if err := runMigrations(db); err != nil {
+			return nil, err
+		}
 	}
+
 	return db, nil
 }
 

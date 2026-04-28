@@ -40,8 +40,9 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 
+	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
-		h.logger.Warn("failed to read body", zap.Error(err))
+		h.logger.Info("failed to read body", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -54,7 +55,7 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	userID, err := h.service.Create(*h.ctx, user)
 	if err != nil {
-		if errors.As(err, &repository.ErrUserAlreadyExists) {
+		if errors.Is(err, repository.ErrUserAlreadyExists) {
 			h.logger.Info("user already exists", zap.String("Login", user.Login), zap.String("layer", "user handler"))
 			w.WriteHeader(http.StatusConflict)
 			return
@@ -73,8 +74,8 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Path:     "/",
 	})
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +83,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err != nil {
-		h.logger.Warn("failed to read body", zap.Error(err))
+		h.logger.Info("failed to read body", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -94,15 +95,22 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
+	if user.Login == "" || user.Password == "" {
+		h.logger.Debug("invalid request body", zap.String("request body", string(body)), zap.String("expected fields", "login, password"), zap.String("layer", "user handler"))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	userResponse, err := h.service.Login(*h.ctx, user)
 	if err != nil {
-		if errors.As(err, &repository.ErrUserNotFound) {
+		if errors.Is(err, repository.ErrUserNotFound) {
 			h.logger.Info("user not found", zap.String("Login", user.Login), zap.String("layer", "user handler"))
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		h.logger.Info("failed to login", zap.Error(err), zap.String("Layer", "user handler"))
-		w.WriteHeader(http.StatusInternalServerError)
+		h.logger.Info("failed to login", zap.Error(err), zap.String("user", user.Login), zap.String("layer", "user handler"))
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
@@ -140,7 +148,7 @@ func UserRouter(
 			w.Write([]byte(fmt.Sprintf("Method %s is not allowed", r.Method)))
 			return
 		})
-		r.Post("/", userHandler.Create)
+		r.Post("/register", userHandler.Create)
 		r.Post("/login", userHandler.Login)
 	})
 	return r
