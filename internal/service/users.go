@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var ErrWrongPassword = errors.New("wrong password")
 
 type UserServiceInterface interface {
 	Create(ctx context.Context, user model.UserCreateRequest) (string, error)
@@ -50,7 +53,7 @@ func (s *UserService) Login(ctx context.Context, user model.UserLoginRequest) (m
 
 	err = bcrypt.CompareHashAndPassword([]byte(userEntity.Password), []byte(user.Password))
 	if err != nil {
-		return model.User{}, err
+		return model.User{}, fmt.Errorf("%w: %s", ErrWrongPassword, err)
 	}
 	return userEntity, nil
 }
@@ -82,20 +85,20 @@ func (s *UserService) BuildJWTString(userID string, cfg *config.Config) (string,
 	return tokenString, nil
 }
 
-func GetUserID(tokenString string, cfg *config.Config) string {
-	claims := &Claims{}
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(cfg.SecretKey), nil
-	})
-	if err != nil {
-		return ""
-	}
-
-	if !token.Valid {
-		return ""
-	}
-	return claims.UserID
-}
+//func GetUserID(tokenString string, cfg *config.Config) string {
+//	claims := &Claims{}
+//	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+//		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+//			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+//		}
+//		return []byte(cfg.SecretKey), nil
+//	})
+//	if err != nil {
+//		return ""
+//	}
+//
+//	if !token.Valid {
+//		return ""
+//	}
+//	return claims.UserID
+//}

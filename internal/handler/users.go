@@ -44,6 +44,7 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Info("failed to read body", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error": "invalid request body"}`))
 		return
 	}
 	user := model.UserCreateRequest{}
@@ -51,6 +52,7 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Info("failed to unmarshal body", zap.Error(err), zap.String("layer", "user handler"))
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error": "invalid request body"}`))
 		return
 	}
 	userID, err := h.service.Create(*h.ctx, user)
@@ -58,10 +60,12 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, repository.ErrUserAlreadyExists) {
 			h.logger.Info("user already exists", zap.String("Login", user.Login), zap.String("layer", "user handler"))
 			w.WriteHeader(http.StatusConflict)
+			w.Write([]byte(`{"error": "user already exists"}`))
 			return
 		}
 		h.logger.Info("failed to create user", zap.Error(err), zap.String("layer", "user handler"))
 		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error": "Internal Server Error"}`))
 		return
 
 	}
@@ -76,15 +80,18 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	})
 
 	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message": "user successfully created"}`))
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
+	w.Header().Set("Content-Type", "application/json")
 
 	if err != nil {
 		h.logger.Info("failed to read body", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error": "invalid request body"}`))
 		return
 	}
 
@@ -93,12 +100,14 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Info("failed to unmarshal body", zap.Error(err), zap.String("layer", "user handler"))
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error": "invalid request body"}`))
 		return
 	}
 
 	if user.Login == "" || user.Password == "" {
 		h.logger.Debug("invalid request body", zap.String("request body", string(body)), zap.String("expected fields", "login, password"), zap.String("layer", "user handler"))
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error": "invalid request body"}`))
 		return
 	}
 
@@ -107,10 +116,12 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, repository.ErrUserNotFound) {
 			h.logger.Info("user not found", zap.String("Login", user.Login), zap.String("layer", "user handler"))
 			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(`{"error": "wrong user or password"}`))
 			return
 		}
 		h.logger.Info("failed to login", zap.Error(err), zap.String("user", user.Login), zap.String("layer", "user handler"))
 		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(`{"error": "wrong user or password"}`))
 		return
 	}
 
@@ -122,7 +133,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Path:     "/",
 	})
-	w.Header().Set("Content-Type", "application/json")
+
 	w.WriteHeader(http.StatusOK)
 	return
 }

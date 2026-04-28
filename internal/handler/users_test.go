@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -19,7 +20,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func testHandler() *UserHandler {
+func initHandler() *UserHandler {
 	testDBDSN := "host=localhost port=5432 user=test password=test dbname=gophermart_test sslmode=disable"
 	cfg := config.Config{
 		DatabaseURI: testDBDSN,
@@ -58,18 +59,14 @@ func testHandler() *UserHandler {
 	return h
 }
 
-func TestCreateUser(t *testing.T) {
-	h := testHandler()
+func TestCreate(t *testing.T) {
+	h := initHandler()
 
 	type want struct {
 		contentType string
 		statusCode  int
+		message     string
 	}
-
-	//type body struct {
-	//	login    string
-	//	password string
-	//}
 
 	type request struct {
 		body   string
@@ -90,6 +87,7 @@ func TestCreateUser(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  http.StatusOK,
+				message:     "{\"message\": \"user successfully created\"}",
 			},
 		},
 		{
@@ -101,6 +99,7 @@ func TestCreateUser(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  http.StatusConflict,
+				message:     "{\"error\": \"user already exists\"}",
 			},
 		},
 		{
@@ -112,13 +111,12 @@ func TestCreateUser(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  http.StatusBadRequest,
+				message:     "{\"error\": \"invalid request body\"}",
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			//strBody := fmt.Sprintf("{\"login\":\"%s\",\"password\":\"%s\"}", tt.request.body.login, tt.request.body.password)
-			//fmt.Println(strBody)
 			reqBody := strings.NewReader(tt.request.body)
 			req := httptest.NewRequest(tt.request.method, "/api/users/register", reqBody)
 			w := httptest.NewRecorder()
@@ -126,9 +124,14 @@ func TestCreateUser(t *testing.T) {
 
 			res := w.Result()
 			defer res.Body.Close()
+			resBody, err := io.ReadAll(res.Body)
+			if err != nil {
+				t.Error(err)
+			}
 
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
 			assert.Equal(t, tt.want.contentType, res.Header.Get("Content-Type"))
+			assert.Equal(t, tt.want.message, string(resBody))
 			if tt.want.statusCode == http.StatusCreated {
 				assert.Equal(t, res.Cookies()[0].Name, "jwt")
 				assert.NotEqual(t, res.Cookies()[0].Value, nil)
@@ -138,11 +141,12 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestLoginUser(t *testing.T) {
-	h := testHandler()
+	h := initHandler()
 
 	type want struct {
 		contentType string
 		statusCode  int
+		message     string
 	}
 
 	type body struct {
@@ -156,8 +160,7 @@ func TestLoginUser(t *testing.T) {
 	}
 
 	tests := []struct {
-		name string
-
+		name    string
 		request request
 		want    want
 	}{
@@ -170,6 +173,7 @@ func TestLoginUser(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  http.StatusOK,
+				message:     "",
 			},
 		},
 		{
@@ -181,10 +185,11 @@ func TestLoginUser(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  http.StatusBadRequest,
+				message:     "{\"error\": \"invalid request body\"}",
 			},
 		},
 		{
-			name: "response 401",
+			name: "response 401 - wrong login",
 			request: request{
 				body:   body{login: "test", password: "test1"},
 				method: http.MethodPost,
@@ -192,6 +197,19 @@ func TestLoginUser(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  http.StatusUnauthorized,
+				message:     "{\"error\": \"wrong user or password\"}",
+			},
+		},
+		{
+			name: "response 401 - wrong password",
+			request: request{
+				body:   body{login: "test1", password: "test"},
+				method: http.MethodPost,
+			},
+			want: want{
+				contentType: "application/json",
+				statusCode:  http.StatusUnauthorized,
+				message:     "{\"error\": \"wrong user or password\"}",
 			},
 		},
 	}
@@ -222,8 +240,13 @@ func TestLoginUser(t *testing.T) {
 			h.Login(w2, req)
 			res = w2.Result()
 			defer res.Body.Close()
-
+			resBody, err := io.ReadAll(res.Body)
+			if err != nil {
+				t.Error(err)
+			}
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
+			assert.Equal(t, tt.want.contentType, res.Header.Get("Content-Type"))
+			assert.Equal(t, tt.want.message, string(resBody))
 		})
 	}
 }
