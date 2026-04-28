@@ -148,15 +148,16 @@ func UserRouter(
 ) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.RequestID)
 	r.Use(middleware.Recoverer)
+	r.Use(middleware.RequestID)
+	r.Use(config.GzipMiddleware)
 
 	userHandler := NewUserHandler(ctx, app.Logger, cfg, userRepository, userService)
 
 	r.Route("/api/user", func(r chi.Router) {
 		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(fmt.Sprintf("Method %s is not allowed", r.Method)))
+			w.Write([]byte(fmt.Sprintf(`{"error":"Method is not allowed"}`)))
 			return
 		})
 		r.Post("/register", userHandler.Create)
