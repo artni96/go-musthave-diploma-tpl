@@ -6,15 +6,17 @@ import (
 	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/handler/orders"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/handler/users"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/repository"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/service"
+	orderrepo "github.com/artni96/go-musthave-diploma-tpl/internal/repository/orders"
+	usersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/repository/users"
+	ordersserv "github.com/artni96/go-musthave-diploma-tpl/internal/service/orders"
+	usersserv "github.com/artni96/go-musthave-diploma-tpl/internal/service/users"
 	"github.com/go-chi/chi/v5"
 )
 
-func InitRouter(ctx *context.Context, app *config.App, userRepository *repository.UserRepository, userService *service.UserService) *chi.Mux {
+func InitRouter(ctx *context.Context, app *config.App, userRepository *usersrepo.UserRepository, userService *usersserv.UserService, orderRepository *orderrepo.OrderRepository, orderService *ordersserv.OrderService) *chi.Mux {
 	mainRouter := chi.NewRouter()
 	userRouter := users.UserRouter(ctx, app, userRepository, userService)
-	orderRouter := orders.OrderRouter(ctx, app)
+	orderRouter := orders.OrderRouter(ctx, app, orderRepository, orderService)
 
 	mainRouter.Mount("/api/user", userRouter)
 	mainRouter.Mount("/api/user/orders", orderRouter)

@@ -6,9 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/handler/middlewares"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
+	orderrepo "github.com/artni96/go-musthave-diploma-tpl/internal/repository/orders"
+	ordersserv "github.com/artni96/go-musthave-diploma-tpl/internal/service/orders"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/validators"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -16,20 +20,25 @@ import (
 )
 
 type OrderHandler struct {
-	logger *zap.Logger
-	ctx    *context.Context
-	cfg    *config.Config
+	repository *orderrepo.OrderRepository
+	service    *ordersserv.OrderService
+	logger     *zap.Logger
+	ctx        *context.Context
+	cfg        *config.Config
 }
 
-func NewOrderHandler(ctx *context.Context, app *config.App) *OrderHandler {
+func NewOrderHandler(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService) *OrderHandler {
 	return &OrderHandler{
-		logger: app.Logger,
-		ctx:    ctx,
-		cfg:    app.Config,
+		repository: repository,
+		service:    service,
+		logger:     app.Logger,
+		ctx:        ctx,
+		cfg:        app.Config,
 	}
 }
 
 func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	userID := r.Header.Get("UserID")
 	fmt.Println(userID)
 	var OrderNumber int
@@ -48,11 +57,21 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("invalid order number"))
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
+	newOrder := model.OrderCreateRequest{
+		UserID:      userID,
+		OrderNumber: strconv.Itoa(OrderNumber),
+	}
+	orderID, err := h.service.Create(*h.ctx, newOrder)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
 	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(orderID))
 }
 
-func OrderRouter(ctx *context.Context, app *config.App) http.Handler {
+func OrderRouter(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middlewares.PanicRecoverer(app.Logger))
@@ -61,7 +80,7 @@ func OrderRouter(ctx *context.Context, app *config.App) http.Handler {
 	r.Use(middlewares.RequestLoggerMiddleware(app.Logger))
 	r.Use(middlewares.AuthorizationMiddleware(app))
 
-	orderHandler := NewOrderHandler(ctx, app)
+	orderHandler := NewOrderHandler(ctx, app, repository, service)
 	r.Route("/", func(r chi.Router) {
 		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)

@@ -1,4 +1,4 @@
-package repository
+package users
 
 import (
 	"context"
@@ -33,7 +33,7 @@ func initRepository() (*UserRepository, *context.Context) {
 		log.Fatal(fmt.Errorf("failed to create database driver: %w", err))
 	}
 
-	migrator, err := migrate.NewWithDatabaseInstance("file://../../migrations", "postgres", driver)
+	migrator, err := migrate.NewWithDatabaseInstance("file://../../../migrations", "postgres", driver)
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to initialize test migrator: %w", err))
 	}

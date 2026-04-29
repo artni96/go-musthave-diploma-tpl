@@ -1,4 +1,4 @@
-package service
+package users
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/repository"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/repository/users"
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -21,11 +21,11 @@ type UserServiceInterface interface {
 	BuildJWTString(userID string, cfg *config.Config) (string, error)
 }
 type UserService struct {
-	repository repository.UserRepositoryInterface
+	repository users.UserRepositoryInterface
 	app        *config.App
 }
 
-func NewUserService(repository repository.UserRepositoryInterface, app *config.App) *UserService {
+func NewUserService(repository users.UserRepositoryInterface, app *config.App) *UserService {
 	return &UserService{
 		repository: repository,
 		app:        app,

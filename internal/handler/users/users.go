@@ -12,22 +12,22 @@ import (
 	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/handler/middlewares"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/repository"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/service"
+	usersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/repository/users"
+	usersserv "github.com/artni96/go-musthave-diploma-tpl/internal/service/users"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
 )
 
 type UserHandler struct {
-	repository *repository.UserRepository
-	service    *service.UserService
+	repository *usersrepo.UserRepository
+	service    *usersserv.UserService
 	logger     *zap.Logger
 	ctx        *context.Context
 	cfg        *config.Config
 }
 
-func NewUserHandler(ctx *context.Context, app *config.App, repository *repository.UserRepository, service *service.UserService) *UserHandler {
+func NewUserHandler(ctx *context.Context, app *config.App, repository *usersrepo.UserRepository, service *usersserv.UserService) *UserHandler {
 	return &UserHandler{
 		logger:     app.Logger,
 		ctx:        ctx,
@@ -58,7 +58,7 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	userID, err := h.service.Create(*h.ctx, user)
 	if err != nil {
-		if errors.Is(err, repository.ErrUserAlreadyExists) {
+		if errors.Is(err, usersrepo.ErrUserAlreadyExists) {
 			h.logger.Info("user already exists", zap.String("Login", user.Login), zap.String("layer", "user handler"))
 			w.WriteHeader(http.StatusConflict)
 			w.Write([]byte(`{"error": "user already exists"}`))
@@ -114,7 +114,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	userResponse, err := h.service.Login(*h.ctx, user)
 	if err != nil {
-		if errors.Is(err, repository.ErrUserNotFound) {
+		if errors.Is(err, usersrepo.ErrUserNotFound) {
 			h.logger.Info("user not found", zap.String("Login", user.Login), zap.String("layer", "user handler"))
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write([]byte(`{"error": "wrong user or password"}`))
@@ -139,7 +139,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func UserRouter(ctx *context.Context, app *config.App, userRepository *repository.UserRepository, userService *service.UserService) http.Handler {
+func UserRouter(ctx *context.Context, app *config.App, repository *usersrepo.UserRepository, service *usersserv.UserService) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middlewares.PanicRecoverer(app.Logger))
@@ -147,7 +147,7 @@ func UserRouter(ctx *context.Context, app *config.App, userRepository *repositor
 	r.Use(config.GzipMiddleware)
 	r.Use(middlewares.RequestLoggerMiddleware(app.Logger))
 
-	userHandler := NewUserHandler(ctx, app, userRepository, userService)
+	handler := NewUserHandler(ctx, app, repository, service)
 
 	r.Route("/", func(r chi.Router) {
 		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
@@ -155,8 +155,8 @@ func UserRouter(ctx *context.Context, app *config.App, userRepository *repositor
 			w.Write([]byte(fmt.Sprintf(`{"error":"Method is not allowed"}`)))
 			return
 		})
-		r.Post("/register", userHandler.Create)
-		r.Post("/login", userHandler.Login)
+		r.Post("/register", handler.Create)
+		r.Post("/login", handler.Login)
 	})
 	return r
 }

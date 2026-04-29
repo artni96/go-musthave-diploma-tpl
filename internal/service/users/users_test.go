@@ -1,4 +1,4 @@
-package service
+package users
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/repository"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/repository/users"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/stretchr/testify/assert"
@@ -39,7 +39,7 @@ func initService() (*UserService, context.Context, *config.Config) {
 		log.Fatal(fmt.Errorf("failed to create database driver: %w", err))
 	}
 
-	migrator, err := migrate.NewWithDatabaseInstance("file://../../migrations", "postgres", driver)
+	migrator, err := migrate.NewWithDatabaseInstance("file://../../../migrations", "postgres", driver)
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to initialize test migrator: %w", err))
 	}
@@ -49,7 +49,7 @@ func initService() (*UserService, context.Context, *config.Config) {
 	if err := migrator.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Fatal(fmt.Errorf("failed to run migrations: %w", err))
 	}
-	testRepository := repository.NewUserRepository(db, logger)
+	testRepository := users.NewUserRepository(db, logger)
 	testService := NewUserService(testRepository, &app)
 	return testService, ctx, &cfg
 }
@@ -80,7 +80,7 @@ func TestUserCreate(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			userID, err := testService.Create(ctx, test.body)
 			if err != nil {
-				if errors.Is(err, repository.ErrUserAlreadyExists) {
+				if errors.Is(err, users.ErrUserAlreadyExists) {
 					assert.True(t, true)
 				} else {
 					assert.NoError(t, err)
@@ -133,7 +133,7 @@ func TestLogin(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			user, err := testService.Login(ctx, test.body)
 			if err != nil {
-				if errors.Is(err, repository.ErrUserNotFound) {
+				if errors.Is(err, users.ErrUserNotFound) {
 					assert.True(t, true)
 				} else if errors.Is(err, ErrWrongPassword) {
 					assert.True(t, true)

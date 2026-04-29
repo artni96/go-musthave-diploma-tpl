@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/repository"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/service"
+	users2 "github.com/artni96/go-musthave-diploma-tpl/internal/repository/users"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/service/users"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/stretchr/testify/assert"
@@ -53,8 +53,8 @@ func initHandler() *UserHandler {
 	if err := migrator.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Fatal(fmt.Errorf("failed to run migrations: %w", err))
 	}
-	testRepository := repository.NewUserRepository(db, logger)
-	testService := service.NewUserService(testRepository, &app)
+	testRepository := users2.NewUserRepository(db, logger)
+	testService := users.NewUserService(testRepository, &app)
 	h := NewUserHandler(&ctx, &app, testRepository, testService)
 	return h
 }

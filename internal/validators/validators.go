@@ -1,7 +1,9 @@
 package validators
 
+import "strconv"
+
 func LuhnValidator(number int) bool {
-	strNumber := string(rune(number))
+	strNumber := strconv.Itoa(number)
 	sum := 0
 	strLength := len(strNumber)
 	parity := strLength % 2

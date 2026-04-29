@@ -12,8 +12,10 @@ import (
 	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/handler/routers"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/logger"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/repository"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/service"
+	ordersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/repository/orders"
+	usersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/repository/users"
+	ordersserv "github.com/artni96/go-musthave-diploma-tpl/internal/service/orders"
+	usersserv "github.com/artni96/go-musthave-diploma-tpl/internal/service/users"
 	"go.uber.org/zap"
 )
 
@@ -38,9 +40,12 @@ func run(cfg *config.Config) error {
 	}
 	app.Logger.Info("starting server", zap.String("server address", cfg.RunAddress))
 
-	userRepository := repository.NewUserRepository(db, app.Logger)
-	userService := service.NewUserService(userRepository, &app)
-	mainRouter := routers.InitRouter(&ctx, &app, userRepository, userService)
+	userRepository := usersrepo.NewUserRepository(db, app.Logger)
+	userService := usersserv.NewUserService(userRepository, &app)
+
+	orderRepository := ordersrepo.NewOrderRepository(db, app.Logger)
+	orderService := ordersserv.NewOrderService(orderRepository, &app)
+	mainRouter := routers.InitRouter(&ctx, &app, userRepository, userService, orderRepository, orderService)
 
 	newServer := &http.Server{
 		Addr:    app.Config.RunAddress,
