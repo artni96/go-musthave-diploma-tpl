@@ -10,13 +10,16 @@ import (
 	"time"
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/handler"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/handler/middlewares"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/logger"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
 	usersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/repository/users"
 	usersserv "github.com/artni96/go-musthave-diploma-tpl/internal/service/users"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type UserHandler struct {
@@ -43,30 +46,39 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
-		h.logger.Info("failed to read body", zap.Error(err))
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error": "invalid request body"}`))
+		logMessage := logger.LogMessage{
+			Message: "failed to read body",
+			Fields:  []zap.Field{zap.Error(err)},
+		}
+		handler.ErrorResponse(w, "invalid request body", http.StatusBadRequest, h.logger, logMessage, zapcore.DebugLevel)
 		return
 	}
 	user := model.UserCreateRequest{}
 	err = json.Unmarshal(body, &user)
 	if err != nil {
-		h.logger.Info("failed to unmarshal body", zap.Error(err), zap.String("layer", "user handler"))
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error": "invalid request body"}`))
+		logMessage := logger.LogMessage{
+			Message: "failed to unmarshal body",
+			Fields:  []zap.Field{zap.Error(err)},
+		}
+		handler.ErrorResponse(w, "invalid request body", http.StatusBadRequest, h.logger, logMessage, zapcore.DebugLevel)
 		return
 	}
 	userID, err := h.service.Create(*h.ctx, user)
 	if err != nil {
 		if errors.Is(err, usersrepo.ErrUserAlreadyExists) {
-			h.logger.Info("user already exists", zap.String("Login", user.Login), zap.String("layer", "user handler"))
-			w.WriteHeader(http.StatusConflict)
-			w.Write([]byte(`{"error": "user already exists"}`))
+			logMessage := logger.LogMessage{
+				Message: "user already exists",
+				Fields:  []zap.Field{zap.String("Login", user.Login)},
+			}
+			handler.ErrorResponse(w, "user already exists", http.StatusConflict, h.logger, logMessage, zapcore.InfoLevel)
 			return
 		}
-		h.logger.Info("failed to create user", zap.Error(err), zap.String("layer", "user handler"))
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error": "Internal Server Error"}`))
+
+		logMessage := logger.LogMessage{
+			Message: "failed to create user",
+			Fields:  []zap.Field{zap.Error(err), zap.String("Login", user.Login)},
+		}
+		handler.ErrorResponse(w, "failed to create user", http.StatusInternalServerError, h.logger, logMessage, zapcore.InfoLevel)
 		return
 
 	}
@@ -81,7 +93,7 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	})
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message": "user successfully created"}`))
+	w.Write([]byte(`{"message":"user successfully created"}`))
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -90,39 +102,55 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err != nil {
-		h.logger.Info("failed to read body", zap.Error(err))
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error": "invalid request body"}`))
+		logMessage := logger.LogMessage{
+			Message: "failed to read body",
+			Fields:  []zap.Field{zap.Error(err)},
+		}
+		handler.ErrorResponse(w, "invalid request body", http.StatusBadRequest, h.logger, logMessage, zapcore.DebugLevel)
 		return
 	}
 
 	user := model.UserLoginRequest{}
 	err = json.Unmarshal(body, &user)
 	if err != nil {
-		h.logger.Info("failed to unmarshal body", zap.Error(err), zap.String("layer", "user handler"))
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error": "invalid request body"}`))
+		logMessage := logger.LogMessage{
+			Message: "failed to unmarshal body",
+			Fields:  []zap.Field{zap.Error(err)},
+		}
+		handler.ErrorResponse(w, "invalid request body", http.StatusBadRequest, h.logger, logMessage, zapcore.DebugLevel)
 		return
 	}
 
 	if user.Login == "" || user.Password == "" {
-		h.logger.Debug("invalid request body", zap.String("request body", string(body)), zap.String("expected fields", "login, password"), zap.String("layer", "user handler"))
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error": "invalid request body"}`))
+		logMessage := logger.LogMessage{
+			Message: "invalid request body",
+			Fields: []zap.Field{zap.String(
+				"request body", string(body)), zap.String("expected fields", "login, password"),
+			},
+		}
+		handler.ErrorResponse(w, "invalid request body", http.StatusBadRequest, h.logger, logMessage, zapcore.DebugLevel)
 		return
 	}
 
 	userResponse, err := h.service.Login(*h.ctx, user)
 	if err != nil {
 		if errors.Is(err, usersrepo.ErrUserNotFound) {
-			h.logger.Info("user not found", zap.String("Login", user.Login), zap.String("layer", "user handler"))
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte(`{"error": "wrong user or password"}`))
+			logMessage := logger.LogMessage{
+				Message: "user not found",
+				Fields: []zap.Field{
+					zap.String("Login", user.Login),
+				},
+			}
+			handler.ErrorResponse(w, "wrong user or password", http.StatusUnauthorized, h.logger, logMessage, zapcore.InfoLevel)
 			return
 		}
-		h.logger.Info("failed to login", zap.Error(err), zap.String("user", user.Login), zap.String("layer", "user handler"))
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"error": "wrong user or password"}`))
+		logMessage := logger.LogMessage{
+			Message: "failed to login - wrong user or password",
+			Fields: []zap.Field{
+				zap.Error(err), zap.String("user", user.Login),
+			},
+		}
+		handler.ErrorResponse(w, "wrong user or password", http.StatusUnauthorized, h.logger, logMessage, zapcore.InfoLevel)
 		return
 	}
 

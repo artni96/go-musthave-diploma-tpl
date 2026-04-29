@@ -63,13 +63,6 @@ func RequestLoggerMiddleware(logger *zap.Logger) func(h http.Handler) http.Handl
 }
 
 func InitLogger(debug bool) (*zap.Logger, error) {
-	//levelMap := map[string]zapcore.Level{
-	//	"debug": zapcore.DebugLevel,
-	//	"info":  zapcore.InfoLevel,
-	//	"warn":  zapcore.WarnLevel,
-	//	"error": zapcore.ErrorLevel,
-	//	"fatal": zapcore.FatalLevel,
-	//}
 	logLevel := zapcore.InfoLevel
 	if debug {
 		logLevel = zapcore.DebugLevel
@@ -93,4 +86,9 @@ func InitLogger(debug bool) (*zap.Logger, error) {
 	defer logger.Sync()
 
 	return logger, nil
+}
+
+type LogMessage struct {
+	Message string
+	Fields  []zap.Field
 }

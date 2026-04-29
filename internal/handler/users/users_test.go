@@ -87,7 +87,7 @@ func TestCreate(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  http.StatusOK,
-				message:     "{\"message\": \"user successfully created\"}",
+				message:     "{\"message\":\"user successfully created\"}",
 			},
 		},
 		{
@@ -99,7 +99,7 @@ func TestCreate(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  http.StatusConflict,
-				message:     "{\"error\": \"user already exists\"}",
+				message:     "{\"error\":\"user already exists\"}",
 			},
 		},
 		{
@@ -111,7 +111,7 @@ func TestCreate(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  http.StatusBadRequest,
-				message:     "{\"error\": \"invalid request body\"}",
+				message:     "{\"error\":\"invalid request body\"}",
 			},
 		},
 	}
@@ -185,7 +185,7 @@ func TestLoginUser(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  http.StatusBadRequest,
-				message:     "{\"error\": \"invalid request body\"}",
+				message:     "{\"error\":\"invalid request body\"}",
 			},
 		},
 		{
@@ -197,7 +197,7 @@ func TestLoginUser(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  http.StatusUnauthorized,
-				message:     "{\"error\": \"wrong user or password\"}",
+				message:     "{\"error\":\"wrong user or password\"}",
 			},
 		},
 		{
@@ -209,7 +209,7 @@ func TestLoginUser(t *testing.T) {
 			want: want{
 				contentType: "application/json",
 				statusCode:  http.StatusUnauthorized,
-				message:     "{\"error\": \"wrong user or password\"}",
+				message:     "{\"error\":\"wrong user or password\"}",
 			},
 		},
 	}

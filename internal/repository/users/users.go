@@ -35,11 +35,11 @@ func (r *UserRepository) Create(ctx context.Context, user model.UserCreateReques
 			r.logger.Info("User already exists", zap.Error(err), zap.String("login", user.Login))
 			return "", ErrUserAlreadyExists
 		}
-		r.logger.Debug("failed to create user", zap.Error(err), zap.String("layer", "user repository"))
+		r.logger.Debug("failed to create user", zap.Error(err))
 		return "", fmt.Errorf("failed to create user: %w", err)
 	}
 
-	r.logger.Debug("user successfully created", zap.String("username", user.Login), zap.String("layer", "user repository"))
+	r.logger.Debug("user successfully created", zap.String("username", user.Login))
 	return userID, nil
 }
 
@@ -48,7 +48,7 @@ func (r *UserRepository) GetByLogin(ctx context.Context, login string) (model.Us
 	responseEntity := model.User{}
 	err := r.db.GetContext(ctx, &responseEntity, selectQuery, login)
 	if err != nil {
-		r.logger.Debug("user not found", zap.String("login", login), zap.String("layer", "user repository"))
+		r.logger.Debug("user not found", zap.String("login", login))
 		return responseEntity, ErrUserNotFound
 	}
 	return responseEntity, nil

@@ -12,6 +12,7 @@ import (
 )
 
 var ErrOrderAlreadyExists = errors.New("order already exists")
+var ErrProcessingOrder = errors.New("order being processed")
 
 type OrderRepositoryInterface interface {
 	Create(ctx context.Context, user model.UserCreateRequest) (string, error)
@@ -29,19 +30,25 @@ func NewOrderRepository(db *sqlx.DB, logger *zap.Logger) *OrderRepository {
 	}
 }
 
-func (r *OrderRepository) Create(ctx context.Context, order model.OrderCreateRequest) (string, error) {
-	var createdOrder model.Order
+func (r *OrderRepository) Create(ctx context.Context, inputOrder model.OrderCreateRequest) (string, error) {
+	var order model.Order
 	insertQuery := "INSERT INTO orders (user_id, order_number, uploaded_at, accrual, status) VALUES ($1, $2, $3, $4, $5) RETURNING id, user_id, order_number, accrual, status, uploaded_at"
-	err := r.db.GetContext(ctx, &createdOrder, insertQuery, order.UserID, order.OrderNumber, order.UploadedAt, 0, "PROCESSING")
+	err := r.db.GetContext(ctx, &order, insertQuery, inputOrder.UserID, inputOrder.OrderNumber, inputOrder.UploadedAt, 0, "REGISTERED")
 
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			r.logger.Info("order already exists", zap.String("user_id", order.UserID), zap.String("order_number", order.OrderNumber))
+			selectQuery := "SELECT * FROM orders WHERE order_number = $1"
+			r.db.GetContext(ctx, &order, selectQuery, inputOrder.OrderNumber)
+			if order.UserID == inputOrder.UserID {
+				r.logger.Info("order is being processed", zap.String("user_id", inputOrder.UserID), zap.String("order_number", inputOrder.OrderNumber))
+				return order.OrderNumber, fmt.Errorf("%w: %s", ErrProcessingOrder, inputOrder.OrderNumber)
+			}
+			r.logger.Info("order already exists", zap.String("user_id", inputOrder.UserID), zap.String("order_number", inputOrder.OrderNumber))
 			return "", fmt.Errorf("order for the order already exists: %w", ErrOrderAlreadyExists)
 		}
-		r.logger.Info("failed to create new order", zap.Error(err), zap.String("user_id", order.UserID), zap.String("order_number", order.OrderNumber))
+		r.logger.Info("failed to create new order", zap.Error(err), zap.String("user_id", inputOrder.UserID), zap.String("order_number", inputOrder.OrderNumber))
 		return "", fmt.Errorf("failed to create new order: %w", err)
 	}
-	return createdOrder.OrderNumber, nil
+	return order.OrderNumber, nil
 }

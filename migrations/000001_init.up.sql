@@ -10,7 +10,5 @@ CREATE TABLE orders (
     accrual INTEGER,
     status VARCHAR(255) NOT NULL ,
     order_number VARCHAR(255) NOT NULL UNIQUE,
-    uploaded_at TIMESTAMPTZ NOT NULL,
-    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT unique_user_id_order_number UNIQUE (user_id, order_number)
+    uploaded_at TIMESTAMPTZ NOT NULL
 );
