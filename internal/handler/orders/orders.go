@@ -110,6 +110,7 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 		handler.ErrorResponse(w, "Internal server error", http.StatusInternalServerError, h.logger, logMessage, zap.InfoLevel)
 		return
 	}
+	fmt.Println("test")
 	w.WriteHeader(http.StatusCreated)
 }
 
