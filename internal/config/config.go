@@ -26,9 +26,9 @@ func ParseFlags() (*Config, error) {
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	config := &Config{}
 
-	fs.StringVar(&config.RunAddress, "a", "localhost:8080", "run address")
-	fs.StringVar(&config.DatabaseURI, "d", "", "database URI")
-	fs.StringVar(&config.AccrualSystemAddress, "r", "localhost:8081", "accrual system address")
+	//fs.StringVar(&config.RunAddress, "a", "localhost:8080", "run address")
+	//fs.StringVar(&config.DatabaseURI, "d", "", "database URI")
+	//fs.StringVar(&config.AccrualSystemAddress, "r", "localhost:8081", "accrual system address")
 
 	err := fs.Parse(os.Args[1:])
 	if err != nil {
@@ -38,16 +38,22 @@ func ParseFlags() (*Config, error) {
 	envRunAddress, ok := os.LookupEnv("RUN_ADDRESS")
 	if ok {
 		config.RunAddress = envRunAddress
+	} else {
+		fs.StringVar(&config.RunAddress, "a", "localhost:8080", "run address")
 	}
 
 	envDatabaseURI, ok := os.LookupEnv("DATABASE_URI")
 	if ok {
 		config.DatabaseURI = envDatabaseURI
+	} else {
+		fs.StringVar(&config.DatabaseURI, "d", "", "database URI")
 	}
 
 	envAccrualSystemAddress, ok := os.LookupEnv("ACCRUAL_ADDRESS")
 	if ok {
 		config.AccrualSystemAddress = envAccrualSystemAddress
+	} else {
+		fs.StringVar(&config.AccrualSystemAddress, "r", "localhost:8081", "accrual system address")
 	}
 
 	err = godotenv.Load(".env")
