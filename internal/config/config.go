@@ -2,10 +2,12 @@ package config
 
 import (
 	"flag"
+	"log"
 	"os"
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
 
@@ -50,30 +52,23 @@ func ParseFlags() (*Config, error) {
 	config.Debug = true
 	config.TokenExp = time.Minute * 5
 
-	//err = godotenv.Load(".env")
-	//if err != nil {
-	//	log.Println(".env file not found")
-	//	return config, errors.New(".env file not found - keep working with default values")
-	//}
-	//envSecretKey, ok := os.LookupEnv("SECRET_KEY")
-	//if ok {
-	//	config.SecretKey = envSecretKey
-	//} else {
-	//	config.SecretKey = "secret"
-	//}
-	//envTokenExp, ok := os.LookupEnv("TOKEN_EXPIRATION")
-	//if ok {
-	//	config.TokenExp, err = time.ParseDuration(envTokenExp)
-	//} else {
-	//	config.TokenExp = time.Minute * 5
-	//}
-	//envDebug, ok := os.LookupEnv("DEBUG")
-	//if ok && envDebug == "true" {
-	//	config.Debug = true
-	//} else {
-	//	config.Debug = false
-	//}
-
+	err = godotenv.Load(".env")
+	if err == nil {
+		envSecretKey, ok := os.LookupEnv("SECRET_KEY")
+		if ok {
+			config.SecretKey = envSecretKey
+		}
+		envTokenExp, ok := os.LookupEnv("TOKEN_EXPIRATION")
+		if ok {
+			config.TokenExp, err = time.ParseDuration(envTokenExp)
+		}
+		envDebug, ok := os.LookupEnv("DEBUG")
+		if ok && envDebug == "true" {
+			config.Debug = true
+		}
+	} else {
+		log.Println(".env file not found, keep working with default values")
+	}
 	return config, nil
 }
 

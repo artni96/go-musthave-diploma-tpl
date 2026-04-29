@@ -93,7 +93,7 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 				Message: "failed to process order - order being processed",
 				Fields:  []zap.Field{zap.Error(err), zap.Int("OrderNumber", OrderNumber)},
 			}
-			handler.ErrorResponse(w, err.Error(), http.StatusAccepted, h.logger, logMessage, zap.InfoLevel)
+			handler.ErrorResponse(w, err.Error(), http.StatusOK, h.logger, logMessage, zap.InfoLevel)
 			return
 		} else if errors.Is(err, orderrepo.ErrOrderAlreadyExists) {
 			logMessage := logger.LogMessage{
@@ -110,8 +110,7 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 		handler.ErrorResponse(w, "Internal server error", http.StatusInternalServerError, h.logger, logMessage, zap.InfoLevel)
 		return
 	}
-	fmt.Println("test")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func OrderRouter(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService) http.Handler {
