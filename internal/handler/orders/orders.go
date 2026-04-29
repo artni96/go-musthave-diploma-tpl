@@ -9,6 +9,7 @@ import (
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/handler/middlewares"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/validators"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
@@ -42,7 +43,11 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Warn("failed to unmarshal body", zap.Error(err))
 	}
-	fmt.Println(OrderNumber)
+	if !validators.LuhnValidator(OrderNumber) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("invalid order number"))
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 }
