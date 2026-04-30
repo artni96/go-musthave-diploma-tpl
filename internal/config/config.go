@@ -25,9 +25,9 @@ func ParseFlags() (*Config, error) {
 	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	config := &Config{}
 
-	fs.StringVar(&config.RunAddress, "a", "localhost:8080", "run address")
+	fs.StringVar(&config.RunAddress, "a", "localhost:8081", "run address")
 	fs.StringVar(&config.DatabaseURI, "d", "", "database URI")
-	fs.StringVar(&config.AccrualSystemAddress, "r", "localhost:8081", "accrual system address")
+	fs.StringVar(&config.AccrualSystemAddress, "r", "localhost:8080", "accrual system address")
 
 	err := fs.Parse(os.Args[1:])
 	if err != nil {

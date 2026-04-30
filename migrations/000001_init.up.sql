@@ -9,6 +9,6 @@ CREATE TABLE orders (
     user_id UUID,
     accrual INTEGER,
     status VARCHAR(255) NOT NULL ,
-    order_number VARCHAR(255) NOT NULL UNIQUE,
+    number VARCHAR(255) NOT NULL UNIQUE,
     uploaded_at TIMESTAMPTZ NOT NULL
 );
