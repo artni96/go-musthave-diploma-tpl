@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -13,6 +14,10 @@ import (
 
 var ErrOrderAlreadyExists = errors.New("order already exists")
 var ErrProcessingOrder = errors.New("order being processed")
+var ErrOrderNotFound = errors.New("order not found")
+var ErrUnavailableStatus = errors.New("status is unavailable")
+
+var AvailableOrderStatus = []string{"PROCESSING", "PROCESSED", "REGISTERED", "INVALID"}
 
 type OrderRepositoryInterface interface {
 	Create(ctx context.Context, order model.OrderCreateRequest) (string, error)
@@ -40,7 +45,7 @@ func (r *OrderRepository) Create(ctx context.Context, inputOrder model.OrderCrea
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			selectQuery := "SELECT * FROM orders WHERE order_number = $1"
+			selectQuery := "SELECT * FROM orders WHERE number = $1"
 			r.db.GetContext(ctx, &order, selectQuery, inputOrder.Number)
 			if order.UserID == inputOrder.UserID {
 				r.logger.Info("order is being processed", zap.String("user_id", inputOrder.UserID), zap.String("order_number", inputOrder.Number))
@@ -65,16 +70,21 @@ func (r *OrderRepository) Update(ctx context.Context, data model.OrderUpdateRequ
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
 		r.logger.Info("failed to update order", zap.Error(err), zap.String("Order number", data.Number))
-		return fmt.Errorf("failed to update order: %w", err)
+		return fmt.Errorf("failed to update order: %w", ErrOrderNotFound)
 	}
 	if rowsAffected == 0 {
 		r.logger.Info("failed to update order", zap.String("Order number", data.Number))
-		return fmt.Errorf("failed to update order: %w", err)
+		return fmt.Errorf("failed to update order: %w", ErrOrderNotFound)
 	}
 	return nil
 }
 
 func (r *OrderRepository) UpdateStatus(ctx context.Context, data model.OrderStatusUpdateRequest) error {
+	isStatusCorrect := slices.Contains(AvailableOrderStatus, data.Status)
+	if !isStatusCorrect {
+		r.logger.Debug("failed to update order", zap.Error(ErrUnavailableStatus), zap.String("Order status", data.Status))
+		return ErrUnavailableStatus
+	}
 	updateQuery := "UPDATE orders SET status = $1 WHERE number = $2"
 	res, err := r.db.ExecContext(ctx, updateQuery, "PROCESSING", data.Number)
 	if err != nil {
@@ -84,11 +94,11 @@ func (r *OrderRepository) UpdateStatus(ctx context.Context, data model.OrderStat
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
 		r.logger.Info("failed to update order status", zap.Error(err), zap.String("id", data.Number))
-		return err
+		return ErrOrderNotFound
 	}
 	if rowsAffected == 0 {
 		r.logger.Info("failed to update order status", zap.String("id", data.Number))
-		return ErrOrderAlreadyExists
+		return ErrOrderNotFound
 	}
 	return nil
 }

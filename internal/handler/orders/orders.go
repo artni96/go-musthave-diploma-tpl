@@ -95,14 +95,14 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 				Message: "failed to process order - order being processed",
 				Fields:  []zap.Field{zap.Error(err), zap.Int("OrderNumber", OrderNumber)},
 			}
-			handler.ErrorResponse(w, err.Error(), http.StatusOK, h.logger, logMessage, zap.InfoLevel)
+			handler.ErrorResponse(w, "order being processed", http.StatusOK, h.logger, logMessage, zap.InfoLevel)
 			return
 		} else if errors.Is(err, orderrepo.ErrOrderAlreadyExists) {
 			logMessage := logger.LogMessage{
 				Message: "failed to process order - order already created by another user",
 				Fields:  []zap.Field{zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber)},
 			}
-			handler.ErrorResponse(w, err.Error(), http.StatusConflict, h.logger, logMessage, zap.InfoLevel)
+			handler.ErrorResponse(w, "order already created by another user", http.StatusConflict, h.logger, logMessage, zap.InfoLevel)
 			return
 		}
 		logMessage := logger.LogMessage{
