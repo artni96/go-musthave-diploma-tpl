@@ -16,7 +16,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func initService() (*OrderService, context.Context) {
+func initService() (*OrderService, context.Context, string, string) {
 	testDBDSN := "host=localhost port=5432 user=test password=test dbname=gophermart_test sslmode=disable"
 	cfg := config.Config{
 		DatabaseURI: testDBDSN,
@@ -51,11 +51,23 @@ func initService() (*OrderService, context.Context) {
 	}
 	testRepository := orders.NewOrderRepository(db, logger)
 	testService := NewOrderService(testRepository, &app)
-	return testService, ctx
+
+	userIDQuery := "INSERT INTO users (login, password) VALUES ($1, $2) returning id;"
+	var user1 string
+	err = db.GetContext(ctx, &user1, userIDQuery, "test1", "test1")
+	if err != nil {
+		log.Fatal(err)
+	}
+	var user2 string
+	err = db.GetContext(ctx, &user2, userIDQuery, "test2", "test2")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return testService, ctx, user1, user2
 }
 
 func TestCreate(t *testing.T) {
-	serv, ctx := initService()
+	serv, ctx, user1, user2 := initService()
 
 	tests := []struct {
 		name string
@@ -64,21 +76,21 @@ func TestCreate(t *testing.T) {
 		{
 			name: "success",
 			req: model.OrderCreateRequest{
-				UserID: "1d210e7d-cda1-497e-8a3d-928f0bd9da3c",
+				UserID: user1,
 				Number: "1",
 			},
 		},
 		{
 			name: "failure - order duplicate",
 			req: model.OrderCreateRequest{
-				UserID: "1d210e7d-cda1-497e-8a3d-928f0bd9da3c",
+				UserID: user1,
 				Number: "1",
 			},
 		},
 		{
 			name: "failure - order created by another user",
 			req: model.OrderCreateRequest{
-				UserID: "1d210e7d-cda1-497e-8a3d-928f0bd9da3d",
+				UserID: user2,
 				Number: "1",
 			},
 		},
@@ -104,10 +116,10 @@ func TestCreate(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	serv, ctx := initService()
+	serv, ctx, userID, _ := initService()
 
 	_, err := serv.Create(ctx, model.OrderCreateRequest{
-		UserID: "1d210e7d-cda1-497e-8a3d-928f0bd9da3c",
+		UserID: userID,
 		Number: "1",
 	})
 	if err != nil {
@@ -151,10 +163,10 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestUpdateStatus(t *testing.T) {
-	serv, ctx := initService()
+	serv, ctx, userID, _ := initService()
 
 	_, err := serv.Create(ctx, model.OrderCreateRequest{
-		UserID: "1d210e7d-cda1-497e-8a3d-928f0bd9da3c",
+		UserID: userID,
 		Number: "1",
 	})
 	if err != nil {

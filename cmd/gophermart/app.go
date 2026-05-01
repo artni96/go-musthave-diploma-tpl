@@ -46,8 +46,7 @@ func run(cfg *config.Config) error {
 	orderRepository := ordersrepo.NewOrderRepository(db, app.Logger)
 	orderService := ordersserv.NewOrderService(orderRepository, &app)
 	ordersQueue := make(chan string, 100)
-	transactionQueue := make(chan string, 100)
-	mainRouter := routers.InitRouter(&ctx, &app, userRepository, userService, orderRepository, orderService, ordersQueue, transactionQueue)
+	mainRouter := routers.InitRouter(&ctx, &app, userRepository, userService, orderRepository, orderService, ordersQueue)
 
 	newServer := &http.Server{
 		Addr:    app.Config.RunAddress,

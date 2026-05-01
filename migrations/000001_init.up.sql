@@ -10,5 +10,14 @@ CREATE TABLE orders (
     accrual INTEGER,
     status VARCHAR(255) NOT NULL ,
     number VARCHAR(255) NOT NULL UNIQUE,
-    uploaded_at TIMESTAMPTZ NOT NULL
+    uploaded_at TIMESTAMPTZ NOT NULL,
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE balance (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID,
+    current INTEGER,
+    withdrawn INTEGER,
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE 
+)

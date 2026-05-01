@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime"
 	"strconv"
-	"sync"
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/handler"
@@ -116,63 +116,10 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.ordersQueue <- strconv.Itoa(OrderNumber)
-	var wg sync.WaitGroup
-	//wg.Add(1)
-	for i := 1; i < 12; i++ {
-		go HandleOrder(h, userID, &wg)
+	for i := 1; i < runtime.NumCPU(); i++ {
+		go orderWorker(h, userID)
 	}
 	w.WriteHeader(http.StatusAccepted)
-
-	//go func() {
-	//	statusCode, err := registerInAccrual(h.cfg, OrderNumber, h.logger)
-	//	if err != nil {
-	//		err = h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
-	//			Number: strconv.Itoa(OrderNumber),
-	//			Status: "INVALID",
-	//		})
-	//		if err != nil {
-	//			h.logger.Info("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber), zap.String("status to change", "INVALID"))
-	//			wg.Done()
-	//
-	//		}
-	//		h.logger.Info("failed to register in accrual", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber))
-	//		wg.Done()
-	//	}
-	//
-	//	if statusCode == http.StatusAccepted {
-	//		err = h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
-	//			Number: strconv.Itoa(OrderNumber),
-	//			Status: "PROCESSING",
-	//		})
-	//
-	//		if err != nil {
-	//			h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
-	//				Number: strconv.Itoa(OrderNumber),
-	//				Status: "INVALID",
-	//			})
-	//			h.logger.Info("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber), zap.String("status to change", "INVALID"))
-	//			wg.Done()
-	//		}
-	//		orderData, err := checkOrderStatusInAccrual(h.cfg, OrderNumber, h.logger)
-	//		if err != nil {
-	//			h.logger.Info("failed to get order data", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber))
-	//			wg.Done()
-	//		}
-	//		err = h.service.Update(*h.ctx, model.OrderUpdateRequest{
-	//			Number:  orderData.Order,
-	//			Status:  orderData.Status,
-	//			Accrual: orderData.Accrual,
-	//		})
-	//		if err != nil {
-	//			h.logger.Info("failed to update order", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber))
-	//			wg.Done()
-	//		}
-	//	}
-	//
-	//	defer wg.Done()
-	//}()
-	//wg.Wait()
-
 }
 
 type Bill struct {
@@ -235,11 +182,10 @@ func checkOrderStatusInAccrual(cfg *config.Config, orderNumber int, logger *zap.
 	return respBody, nil
 }
 
-func HandleOrder(h *OrderHandler, userID string, wg *sync.WaitGroup) {
+func orderWorker(h *OrderHandler, userID string) {
 	for i := range h.ordersQueue {
 		orderNumber, err := strconv.Atoi(i)
-
-		fmt.Printf("processing order: %d\n", orderNumber)
+		h.logger.Debug("processing order", zap.Int("orderNumber", orderNumber))
 		statusCode, err := registerInAccrual(h.cfg, orderNumber, h.logger)
 		if err != nil {
 			err = h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
@@ -248,12 +194,10 @@ func HandleOrder(h *OrderHandler, userID string, wg *sync.WaitGroup) {
 			})
 			if err != nil {
 				h.logger.Info("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber), zap.String("status to change", "INVALID"))
-				//return
-				wg.Done()
-
+				return
 			}
 			h.logger.Info("failed to register in accrual", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
-			wg.Done()
+			return
 		}
 
 		if statusCode == http.StatusAccepted {
@@ -268,14 +212,12 @@ func HandleOrder(h *OrderHandler, userID string, wg *sync.WaitGroup) {
 					Status: "INVALID",
 				})
 				h.logger.Info("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber), zap.String("status to change", "INVALID"))
-				//return
-				wg.Done()
+				return
 			}
 			orderData, err := checkOrderStatusInAccrual(h.cfg, orderNumber, h.logger)
 			if err != nil {
 				h.logger.Info("failed to get order data", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
-				//return
-				wg.Done()
+				return
 			}
 			err = h.service.Update(*h.ctx, model.OrderUpdateRequest{
 				Number:  orderData.Order,
@@ -284,14 +226,13 @@ func HandleOrder(h *OrderHandler, userID string, wg *sync.WaitGroup) {
 			})
 			if err != nil {
 				h.logger.Info("failed to update order", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
-				//return
-				wg.Done()
+				return
 			}
 		}
 	}
 }
 
-func OrderRouter(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, ordersQueue chan string, transactionsQueue chan string) http.Handler {
+func OrderRouter(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, ordersQueue chan string) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middlewares.PanicRecoverer(app.Logger))
