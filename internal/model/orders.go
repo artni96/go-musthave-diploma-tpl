@@ -16,9 +16,10 @@ type Order struct {
 }
 
 type OrderUpdateRequest struct {
-	Number  string `json:"number"`
-	Accrual int    `json:"accrual"`
-	Status  string `json:"status"`
+	Number  string `json:"number" db:"number"`
+	Accrual int    `json:"accrual" db:"accrual"`
+	Status  string `json:"status" db:"status"`
+	UserID  string `json:"user_id" db:"user_id"`
 }
 
 type OrderStatusUpdateRequest struct {

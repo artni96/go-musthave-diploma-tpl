@@ -61,8 +61,16 @@ func (r *OrderRepository) Create(ctx context.Context, inputOrder model.OrderCrea
 }
 
 func (r *OrderRepository) Update(ctx context.Context, data model.OrderUpdateRequest) error {
-	updateQuery := "UPDATE orders SET accrual=$1, status=$2 WHERE number=$3"
-	res, err := r.db.ExecContext(ctx, updateQuery, data.Accrual, data.Status, data.Number)
+
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("BulkCreate - failure to begin transaction: %w", err)
+	}
+
+	defer tx.Rollback()
+
+	updateOrderQuery := "UPDATE orders SET accrual=$1, status=$2 WHERE number=$3"
+	res, err := tx.ExecContext(ctx, updateOrderQuery, data.Accrual, data.Status, data.Number)
 	if err != nil {
 		r.logger.Info("failed to update order", zap.Error(err), zap.String("Order number", data.Number))
 		return fmt.Errorf("failed to update order: %w", err)
@@ -75,6 +83,34 @@ func (r *OrderRepository) Update(ctx context.Context, data model.OrderUpdateRequ
 	if rowsAffected == 0 {
 		r.logger.Info("failed to update order", zap.String("Order number", data.Number))
 		return fmt.Errorf("failed to update order: %w", ErrOrderNotFound)
+	}
+
+	var balance model.Balance
+	selectBalanceQuery := "SELECT id, current FROM balance WHERE user_id = $1"
+	err = tx.GetContext(ctx, &balance, selectBalanceQuery, data.UserID)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			insertBalanceQuery := "INSERT INTO balance (user_id, current, withdrawn) VALUES ($1, $2, $3)"
+			_, err = tx.ExecContext(ctx, insertBalanceQuery, data.UserID, data.Accrual, 0)
+			if err != nil {
+				r.logger.Info("failed to create user balance at order update", zap.Error(err), zap.String("Order number", data.Number), zap.String("User ID", data.UserID))
+				return fmt.Errorf("failed to create user balance: %w", err)
+			}
+		} else {
+			r.logger.Info("failed to get user balance at order update", zap.Error(err), zap.String("Order number", data.Number), zap.String("User ID", data.UserID))
+			return fmt.Errorf("failed to get user balance: %w", err)
+		}
+	} else {
+		updateBalanceQuery := "UPDATE balance SET current = $1 WHERE user_id = $2"
+		_, err = tx.ExecContext(ctx, updateBalanceQuery, data.Accrual+balance.Current, balance.ID)
+		if err != nil {
+			r.logger.Info("failed to update user balance at order update", zap.Error(err), zap.String("Order number", data.Number), zap.String("User ID", data.UserID))
+			return fmt.Errorf("failed to update user balance: %w", err)
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit bulk create: %w", err)
 	}
 	return nil
 }

@@ -223,6 +223,7 @@ func orderWorker(h *OrderHandler, userID string) {
 				Number:  orderData.Order,
 				Status:  orderData.Status,
 				Accrual: orderData.Accrual,
+				UserID:  userID,
 			})
 			if err != nil {
 				h.logger.Info("failed to update order", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
