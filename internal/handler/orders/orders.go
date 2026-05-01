@@ -25,20 +25,23 @@ import (
 )
 
 type OrderHandler struct {
-	repository *orderrepo.OrderRepository
-	service    *ordersserv.OrderService
-	logger     *zap.Logger
-	ctx        *context.Context
-	cfg        *config.Config
+	repository       *orderrepo.OrderRepository
+	service          *ordersserv.OrderService
+	logger           *zap.Logger
+	ctx              *context.Context
+	cfg              *config.Config
+	ordersQueue      chan string
+	transactionQueue chan string
 }
 
-func NewOrderHandler(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService) *OrderHandler {
+func NewOrderHandler(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, queue chan string) *OrderHandler {
 	return &OrderHandler{
-		repository: repository,
-		service:    service,
-		logger:     app.Logger,
-		ctx:        ctx,
-		cfg:        app.Config,
+		repository:  repository,
+		service:     service,
+		logger:      app.Logger,
+		ctx:         ctx,
+		cfg:         app.Config,
+		ordersQueue: queue,
 	}
 }
 
@@ -112,58 +115,63 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 		handler.ErrorResponse(w, "Internal server error", http.StatusInternalServerError, h.logger, logMessage, zap.InfoLevel)
 		return
 	}
-	w.WriteHeader(http.StatusAccepted)
+	h.ordersQueue <- strconv.Itoa(OrderNumber)
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		statusCode, err := registerInAccrual(h.cfg, OrderNumber, h.logger)
-		if err != nil {
-			err = h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
-				Number: strconv.Itoa(OrderNumber),
-				Status: "INVALID",
-			})
-			if err != nil {
-				h.logger.Info("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber), zap.String("status to change", "INVALID"))
-				wg.Done()
+	//wg.Add(1)
+	for i := 1; i < 12; i++ {
+		go HandleOrder(h, userID, &wg)
+	}
+	w.WriteHeader(http.StatusAccepted)
 
-			}
-			h.logger.Info("failed to register in accrual", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber))
-			wg.Done()
-		}
-
-		if statusCode == http.StatusAccepted {
-			err = h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
-				Number: strconv.Itoa(OrderNumber),
-				Status: "PROCESSING",
-			})
-
-			if err != nil {
-				h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
-					Number: strconv.Itoa(OrderNumber),
-					Status: "INVALID",
-				})
-				h.logger.Info("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber), zap.String("status to change", "INVALID"))
-				wg.Done()
-			}
-			orderData, err := checkOrderStatusInAccrual(h.cfg, OrderNumber, h.logger)
-			if err != nil {
-				h.logger.Info("failed to get order data", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber))
-				wg.Done()
-			}
-			err = h.service.Update(*h.ctx, model.OrderUpdateRequest{
-				Number:  orderData.Order,
-				Status:  orderData.Status,
-				Accrual: orderData.Accrual,
-			})
-			if err != nil {
-				h.logger.Info("failed to update order", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber))
-				wg.Done()
-			}
-		}
-
-		defer wg.Done()
-	}()
-	wg.Wait()
+	//go func() {
+	//	statusCode, err := registerInAccrual(h.cfg, OrderNumber, h.logger)
+	//	if err != nil {
+	//		err = h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
+	//			Number: strconv.Itoa(OrderNumber),
+	//			Status: "INVALID",
+	//		})
+	//		if err != nil {
+	//			h.logger.Info("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber), zap.String("status to change", "INVALID"))
+	//			wg.Done()
+	//
+	//		}
+	//		h.logger.Info("failed to register in accrual", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber))
+	//		wg.Done()
+	//	}
+	//
+	//	if statusCode == http.StatusAccepted {
+	//		err = h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
+	//			Number: strconv.Itoa(OrderNumber),
+	//			Status: "PROCESSING",
+	//		})
+	//
+	//		if err != nil {
+	//			h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
+	//				Number: strconv.Itoa(OrderNumber),
+	//				Status: "INVALID",
+	//			})
+	//			h.logger.Info("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber), zap.String("status to change", "INVALID"))
+	//			wg.Done()
+	//		}
+	//		orderData, err := checkOrderStatusInAccrual(h.cfg, OrderNumber, h.logger)
+	//		if err != nil {
+	//			h.logger.Info("failed to get order data", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber))
+	//			wg.Done()
+	//		}
+	//		err = h.service.Update(*h.ctx, model.OrderUpdateRequest{
+	//			Number:  orderData.Order,
+	//			Status:  orderData.Status,
+	//			Accrual: orderData.Accrual,
+	//		})
+	//		if err != nil {
+	//			h.logger.Info("failed to update order", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", OrderNumber))
+	//			wg.Done()
+	//		}
+	//	}
+	//
+	//	defer wg.Done()
+	//}()
+	//wg.Wait()
 
 }
 
@@ -227,7 +235,63 @@ func checkOrderStatusInAccrual(cfg *config.Config, orderNumber int, logger *zap.
 	return respBody, nil
 }
 
-func OrderRouter(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService) http.Handler {
+func HandleOrder(h *OrderHandler, userID string, wg *sync.WaitGroup) {
+	for i := range h.ordersQueue {
+		orderNumber, err := strconv.Atoi(i)
+
+		fmt.Printf("processing order: %d\n", orderNumber)
+		statusCode, err := registerInAccrual(h.cfg, orderNumber, h.logger)
+		if err != nil {
+			err = h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
+				Number: strconv.Itoa(orderNumber),
+				Status: "INVALID",
+			})
+			if err != nil {
+				h.logger.Info("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber), zap.String("status to change", "INVALID"))
+				//return
+				wg.Done()
+
+			}
+			h.logger.Info("failed to register in accrual", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
+			wg.Done()
+		}
+
+		if statusCode == http.StatusAccepted {
+			err = h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
+				Number: strconv.Itoa(orderNumber),
+				Status: "PROCESSING",
+			})
+
+			if err != nil {
+				h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
+					Number: strconv.Itoa(orderNumber),
+					Status: "INVALID",
+				})
+				h.logger.Info("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber), zap.String("status to change", "INVALID"))
+				//return
+				wg.Done()
+			}
+			orderData, err := checkOrderStatusInAccrual(h.cfg, orderNumber, h.logger)
+			if err != nil {
+				h.logger.Info("failed to get order data", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
+				//return
+				wg.Done()
+			}
+			err = h.service.Update(*h.ctx, model.OrderUpdateRequest{
+				Number:  orderData.Order,
+				Status:  orderData.Status,
+				Accrual: orderData.Accrual,
+			})
+			if err != nil {
+				h.logger.Info("failed to update order", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
+				//return
+				wg.Done()
+			}
+		}
+	}
+}
+
+func OrderRouter(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, ordersQueue chan string, transactionsQueue chan string) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middlewares.PanicRecoverer(app.Logger))
@@ -236,7 +300,7 @@ func OrderRouter(ctx *context.Context, app *config.App, repository *orderrepo.Or
 	r.Use(middlewares.RequestLoggerMiddleware(app.Logger))
 	r.Use(middlewares.AuthorizationMiddleware(app))
 
-	orderHandler := NewOrderHandler(ctx, app, repository, service)
+	orderHandler := NewOrderHandler(ctx, app, repository, service, ordersQueue)
 	r.Route("/", func(r chi.Router) {
 		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)

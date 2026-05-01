@@ -45,7 +45,9 @@ func run(cfg *config.Config) error {
 
 	orderRepository := ordersrepo.NewOrderRepository(db, app.Logger)
 	orderService := ordersserv.NewOrderService(orderRepository, &app)
-	mainRouter := routers.InitRouter(&ctx, &app, userRepository, userService, orderRepository, orderService)
+	ordersQueue := make(chan string, 100)
+	transactionQueue := make(chan string, 100)
+	mainRouter := routers.InitRouter(&ctx, &app, userRepository, userService, orderRepository, orderService, ordersQueue, transactionQueue)
 
 	newServer := &http.Server{
 		Addr:    app.Config.RunAddress,
@@ -79,5 +81,6 @@ func run(cfg *config.Config) error {
 		app.Logger.Info("server stopped gracefully")
 	}
 	app.Logger.Info("app stopped gracefully")
+
 	return nil
 }
