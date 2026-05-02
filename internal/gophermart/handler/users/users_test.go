@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
-	users2 "github.com/artni96/go-musthave-diploma-tpl/internal/repository/users"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/service/users"
+	config2 "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
+	users2 "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/users"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/users"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/stretchr/testify/assert"
@@ -22,18 +22,18 @@ import (
 
 func initHandler() *UserHandler {
 	testDBDSN := "host=localhost port=5432 user=test password=test dbname=gophermart_test sslmode=disable"
-	cfg := config.Config{
+	cfg := config2.Config{
 		DatabaseURI: testDBDSN,
 	}
 	ctx := context.Background()
 
 	logger := zap.NewNop()
-	db, err := config.InitDBConnection(ctx, &cfg, false)
+	db, err := config2.InitDBConnection(ctx, &cfg, false)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	app := config.App{
+	app := config2.App{
 		DB:     db,
 		Config: &cfg,
 		Logger: logger,
@@ -43,7 +43,7 @@ func initHandler() *UserHandler {
 		log.Fatal(fmt.Errorf("failed to create database driver: %w", err))
 	}
 
-	migrator, err := migrate.NewWithDatabaseInstance("file://../../../migrations", "postgres", driver)
+	migrator, err := migrate.NewWithDatabaseInstance("file://../../../../migrations", "postgres", driver)
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to initialize test migrator: %w", err))
 	}

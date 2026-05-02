@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
+	config2 "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/model"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/stretchr/testify/assert"
@@ -18,13 +18,13 @@ import (
 
 func initRepository() (*OrderRepository, *context.Context, string, string) {
 	testDBDSN := "host=localhost port=5432 user=test password=test dbname=gophermart_test sslmode=disable"
-	cfg := config.Config{
+	cfg := config2.Config{
 		DatabaseURI: testDBDSN,
 	}
 	ctx := context.Background()
 
 	logger := zap.NewNop()
-	db, err := config.InitDBConnection(ctx, &cfg, false)
+	db, err := config2.InitDBConnection(ctx, &cfg, false)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func initRepository() (*OrderRepository, *context.Context, string, string) {
 		log.Fatal(fmt.Errorf("failed to create database driver: %w", err))
 	}
 
-	migrator, err := migrate.NewWithDatabaseInstance("file://../../../migrations", "postgres", driver)
+	migrator, err := migrate.NewWithDatabaseInstance("file://../../../../migrations", "postgres", driver)
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to initialize test migrator: %w", err))
 	}
@@ -144,6 +144,7 @@ func TestUpdate(t *testing.T) {
 				Number:  "1",
 				Accrual: 700,
 				Status:  "PROCESSED",
+				UserID:  userID,
 			},
 		},
 		{
@@ -152,6 +153,7 @@ func TestUpdate(t *testing.T) {
 				Number:  "2",
 				Accrual: 700,
 				Status:  "PROCESSED",
+				UserID:  userID,
 			},
 		},
 	}

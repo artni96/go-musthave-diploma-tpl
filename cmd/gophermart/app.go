@@ -9,21 +9,21 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/handler/routers"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/logger"
-	ordersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/repository/orders"
-	usersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/repository/users"
-	ordersserv "github.com/artni96/go-musthave-diploma-tpl/internal/service/orders"
-	usersserv "github.com/artni96/go-musthave-diploma-tpl/internal/service/users"
+	config2 "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler/routers"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/logger"
+	ordersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/orders"
+	usersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/users"
+	ordersserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/orders"
+	usersserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/users"
 	"go.uber.org/zap"
 )
 
-func run(cfg *config.Config) error {
+func run(cfg *config2.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	db, err := config.InitDBConnection(ctx, cfg, true)
+	db, err := config2.InitDBConnection(ctx, cfg, true)
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func run(cfg *config.Config) error {
 		log.Fatal("failed to initialize logger")
 	}
 
-	app := config.App{
+	app := config2.App{
 		Config: cfg,
 		DB:     db,
 		Logger: appLogger,

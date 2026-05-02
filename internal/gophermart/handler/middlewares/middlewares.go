@@ -7,8 +7,8 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/handler"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler"
 	"go.uber.org/zap"
 )
 

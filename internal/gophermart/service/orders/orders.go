@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/repository/orders"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/model"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/orders"
 )
 
 type OrderService struct {

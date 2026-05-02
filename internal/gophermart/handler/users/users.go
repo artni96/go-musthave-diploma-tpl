@@ -9,13 +9,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/handler"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/handler/middlewares"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/logger"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
-	usersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/repository/users"
-	usersserv "github.com/artni96/go-musthave-diploma-tpl/internal/service/users"
+	config2 "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler/middlewares"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/logger"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/model"
+	usersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/users"
+	usersserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/users"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
@@ -27,10 +27,10 @@ type UserHandler struct {
 	service    *usersserv.UserService
 	logger     *zap.Logger
 	ctx        *context.Context
-	cfg        *config.Config
+	cfg        *config2.Config
 }
 
-func NewUserHandler(ctx *context.Context, app *config.App, repository *usersrepo.UserRepository, service *usersserv.UserService) *UserHandler {
+func NewUserHandler(ctx *context.Context, app *config2.App, repository *usersrepo.UserRepository, service *usersserv.UserService) *UserHandler {
 	return &UserHandler{
 		logger:     app.Logger,
 		ctx:        ctx,
@@ -167,12 +167,12 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func UserRouter(ctx *context.Context, app *config.App, repository *usersrepo.UserRepository, service *usersserv.UserService) http.Handler {
+func UserRouter(ctx *context.Context, app *config2.App, repository *usersrepo.UserRepository, service *usersserv.UserService) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middlewares.PanicRecoverer(app.Logger))
 	r.Use(middleware.RequestID)
-	r.Use(config.GzipMiddleware)
+	r.Use(config2.GzipMiddleware)
 	r.Use(middlewares.RequestLoggerMiddleware(app.Logger))
 
 	handler := NewUserHandler(ctx, app, repository, service)

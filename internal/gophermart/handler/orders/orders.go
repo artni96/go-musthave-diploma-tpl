@@ -11,14 +11,14 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/handler"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/handler/middlewares"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/logger"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
-	orderrepo "github.com/artni96/go-musthave-diploma-tpl/internal/repository/orders"
-	ordersserv "github.com/artni96/go-musthave-diploma-tpl/internal/service/orders"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/validators"
+	config2 "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler/middlewares"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/logger"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/model"
+	orderrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/orders"
+	ordersserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/orders"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/validators"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
@@ -29,12 +29,12 @@ type OrderHandler struct {
 	service          *ordersserv.OrderService
 	logger           *zap.Logger
 	ctx              *context.Context
-	cfg              *config.Config
+	cfg              *config2.Config
 	ordersQueue      chan string
 	transactionQueue chan string
 }
 
-func NewOrderHandler(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, queue chan string) *OrderHandler {
+func NewOrderHandler(ctx *context.Context, app *config2.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, queue chan string) *OrderHandler {
 	return &OrderHandler{
 		repository:  repository,
 		service:     service,
@@ -138,7 +138,7 @@ type OrderAccrualResponse struct {
 	Accrual int    `json:"accrual"`
 }
 
-func registerInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) (int, error) {
+func registerInAccrual(cfg *config2.Config, orderNumber int, logger *zap.Logger) (int, error) {
 	testBill := Bill{
 		OrderNumber: strconv.Itoa(orderNumber),
 		Goods: []Good{
@@ -160,7 +160,7 @@ func registerInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) 
 	return registerOrderReq.StatusCode, nil
 }
 
-func checkOrderStatusInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) (OrderAccrualResponse, error) {
+func checkOrderStatusInAccrual(cfg *config2.Config, orderNumber int, logger *zap.Logger) (OrderAccrualResponse, error) {
 	var respBody OrderAccrualResponse
 	orderStatusReq, err := http.Get(fmt.Sprintf("http://%s/api/orders/%d", cfg.AccrualSystemAddress, orderNumber))
 	if err != nil {
@@ -233,12 +233,12 @@ func orderWorker(h *OrderHandler, userID string) {
 	}
 }
 
-func OrderRouter(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, ordersQueue chan string) http.Handler {
+func OrderRouter(ctx *context.Context, app *config2.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, ordersQueue chan string) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middlewares.PanicRecoverer(app.Logger))
 	r.Use(middleware.RequestID)
-	r.Use(config.GzipMiddleware)
+	r.Use(config2.GzipMiddleware)
 	r.Use(middlewares.RequestLoggerMiddleware(app.Logger))
 	r.Use(middlewares.AuthorizationMiddleware(app))
 

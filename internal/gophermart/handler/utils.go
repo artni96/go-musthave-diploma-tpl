@@ -3,8 +3,8 @@ package handler
 import (
 	"fmt"
 
-	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/service/users"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/users"
 	"github.com/golang-jwt/jwt/v4"
 )
 

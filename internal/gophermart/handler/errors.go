@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/artni96/go-musthave-diploma-tpl/internal/logger"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/logger"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/repository/users"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/model"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/users"
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
 )

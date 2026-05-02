@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
 )
 
 func main() {

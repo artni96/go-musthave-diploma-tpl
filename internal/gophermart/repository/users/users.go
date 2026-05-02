@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/artni96/go-musthave-diploma-tpl/internal/model"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/model"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"

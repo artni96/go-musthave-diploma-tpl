@@ -3,13 +3,13 @@ package routers
 import (
 	"context"
 
-	"github.com/artni96/go-musthave-diploma-tpl/internal/config"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/handler/orders"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/handler/users"
-	orderrepo "github.com/artni96/go-musthave-diploma-tpl/internal/repository/orders"
-	usersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/repository/users"
-	ordersserv "github.com/artni96/go-musthave-diploma-tpl/internal/service/orders"
-	usersserv "github.com/artni96/go-musthave-diploma-tpl/internal/service/users"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler/orders"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler/users"
+	orderrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/orders"
+	usersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/users"
+	ordersserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/orders"
+	usersserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/users"
 	"github.com/go-chi/chi/v5"
 )
 
