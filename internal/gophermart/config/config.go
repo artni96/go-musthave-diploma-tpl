@@ -18,6 +18,7 @@ type Config struct {
 	SecretKey            string        `env:"SECRET_KEY"`
 	TokenExp             time.Duration `env:"TOKEN_EXPIRATION"`
 	Debug                bool          `env:"DEBUG"`
+	UploadMechanics      bool          `env:"UPLOAD_MECHANICS"`
 }
 
 func ParseFlags() (*Config, error) {
@@ -28,6 +29,7 @@ func ParseFlags() (*Config, error) {
 	fs.StringVar(&config.RunAddress, "a", "localhost:8081", "run address")
 	fs.StringVar(&config.DatabaseURI, "d", "", "database URI")
 	fs.StringVar(&config.AccrualSystemAddress, "r", "localhost:8080", "accrual system address")
+	//fs.StringVar(&config.SecretKey, "um", "", "upload mechanics")
 
 	err := fs.Parse(os.Args[1:])
 	if err != nil {
@@ -51,6 +53,7 @@ func ParseFlags() (*Config, error) {
 	config.SecretKey = "secret"
 	config.Debug = true
 	config.TokenExp = time.Minute * 5
+	config.UploadMechanics = false
 
 	err = godotenv.Load(".env")
 	if err == nil {
@@ -65,6 +68,10 @@ func ParseFlags() (*Config, error) {
 		envDebug, ok := os.LookupEnv("DEBUG")
 		if ok && envDebug == "true" {
 			config.Debug = true
+		}
+		envUploadMechanics, ok := os.LookupEnv("UPLOAD_MECHANICS")
+		if ok && envUploadMechanics == "true" {
+			config.UploadMechanics = true
 		}
 	} else {
 		log.Println(".env file not found, keep working with default values")

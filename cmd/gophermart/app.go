@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	au "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/acrrual_utils"
 	config2 "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler/routers"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/logger"
@@ -54,6 +55,13 @@ func run(cfg *config2.Config) error {
 	}
 
 	go func() {
+		if cfg.UploadMechanics == true {
+			err = au.UploadMechanics("data/mechanics.json", cfg.AccrualSystemAddress, app.Logger)
+			if err != nil {
+				app.Logger.Info("failed to upload mechanics", zap.Error(err))
+			}
+			app.Logger.Info("mechanics successfully uploaded")
+		}
 		err = newServer.ListenAndServe()
 		if err != nil {
 			app.Logger.Fatal("failed to start server", zap.Error(err))

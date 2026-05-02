@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"slices"
 
-	model2 "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/model"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/model"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -20,9 +20,9 @@ var ErrUnavailableStatus = errors.New("status is unavailable")
 var AvailableOrderStatus = []string{"PROCESSING", "PROCESSED", "REGISTERED", "INVALID"}
 
 type OrderRepositoryInterface interface {
-	Create(ctx context.Context, order model2.OrderCreateRequest) (string, error)
-	Update(ctx context.Context, data model2.OrderUpdateRequest) error
-	UpdateStatus(ctx context.Context, data model2.OrderStatusUpdateRequest) error
+	Create(ctx context.Context, order model.OrderCreateRequest) (string, error)
+	Update(ctx context.Context, data model.OrderUpdateRequest) error
+	UpdateStatus(ctx context.Context, data model.OrderStatusUpdateRequest) error
 }
 
 type OrderRepository struct {
@@ -37,8 +37,8 @@ func NewOrderRepository(db *sqlx.DB, logger *zap.Logger) *OrderRepository {
 	}
 }
 
-func (r *OrderRepository) Create(ctx context.Context, inputOrder model2.OrderCreateRequest) (string, error) {
-	var order model2.Order
+func (r *OrderRepository) Create(ctx context.Context, inputOrder model.OrderCreateRequest) (string, error) {
+	var order model.Order
 	insertQuery := "INSERT INTO orders (user_id, number, uploaded_at, accrual, status) VALUES ($1, $2, $3, $4, $5) RETURNING id, user_id, number, accrual, status, uploaded_at"
 	err := r.db.GetContext(ctx, &order, insertQuery, inputOrder.UserID, inputOrder.Number, inputOrder.UploadedAt, 0, "REGISTERED")
 
@@ -60,7 +60,7 @@ func (r *OrderRepository) Create(ctx context.Context, inputOrder model2.OrderCre
 	return order.Number, nil
 }
 
-func (r *OrderRepository) Update(ctx context.Context, data model2.OrderUpdateRequest) error {
+func (r *OrderRepository) Update(ctx context.Context, data model.OrderUpdateRequest) error {
 
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
@@ -84,8 +84,15 @@ func (r *OrderRepository) Update(ctx context.Context, data model2.OrderUpdateReq
 		r.logger.Info("failed to update order", zap.String("Order number", data.Number))
 		return fmt.Errorf("failed to update order: %w", ErrOrderNotFound)
 	}
+	
+	if data.Accrual == 0 {
+		if err = tx.Commit(); err != nil {
+			return fmt.Errorf("failed to commit bulk create: %w", err)
+		}
+		return nil
+	}
 
-	var balance model2.Balance
+	var balance model.Balance
 	selectBalanceQuery := "SELECT id, current FROM balance WHERE user_id = $1"
 	err = tx.GetContext(ctx, &balance, selectBalanceQuery, data.UserID)
 	if err != nil {
@@ -102,7 +109,7 @@ func (r *OrderRepository) Update(ctx context.Context, data model2.OrderUpdateReq
 		}
 	} else {
 		updateBalanceQuery := "UPDATE balance SET current = $1 WHERE user_id = $2"
-		_, err = tx.ExecContext(ctx, updateBalanceQuery, data.Accrual+balance.Current, balance.ID)
+		_, err = tx.ExecContext(ctx, updateBalanceQuery, data.Accrual+balance.Current, data.UserID)
 		if err != nil {
 			r.logger.Info("failed to update user balance at order update", zap.Error(err), zap.String("Order number", data.Number), zap.String("User ID", data.UserID))
 			return fmt.Errorf("failed to update user balance: %w", err)
@@ -115,7 +122,7 @@ func (r *OrderRepository) Update(ctx context.Context, data model2.OrderUpdateReq
 	return nil
 }
 
-func (r *OrderRepository) UpdateStatus(ctx context.Context, data model2.OrderStatusUpdateRequest) error {
+func (r *OrderRepository) UpdateStatus(ctx context.Context, data model.OrderStatusUpdateRequest) error {
 	isStatusCorrect := slices.Contains(AvailableOrderStatus, data.Status)
 	if !isStatusCorrect {
 		r.logger.Debug("failed to update order", zap.Error(ErrUnavailableStatus), zap.String("Order status", data.Status))

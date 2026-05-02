@@ -11,7 +11,8 @@ import (
 	"runtime"
 	"strconv"
 
-	config2 "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/acrrual_utils"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler/middlewares"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/logger"
@@ -29,12 +30,12 @@ type OrderHandler struct {
 	service          *ordersserv.OrderService
 	logger           *zap.Logger
 	ctx              *context.Context
-	cfg              *config2.Config
+	cfg              *config.Config
 	ordersQueue      chan string
 	transactionQueue chan string
 }
 
-func NewOrderHandler(ctx *context.Context, app *config2.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, queue chan string) *OrderHandler {
+func NewOrderHandler(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, queue chan string) *OrderHandler {
 	return &OrderHandler{
 		repository:  repository,
 		service:     service,
@@ -138,16 +139,11 @@ type OrderAccrualResponse struct {
 	Accrual int    `json:"accrual"`
 }
 
-func registerInAccrual(cfg *config2.Config, orderNumber int, logger *zap.Logger) (int, error) {
-	testBill := Bill{
-		OrderNumber: strconv.Itoa(orderNumber),
-		Goods: []Good{
-			{Description: "Чайник Bork", Price: 7000},
-		},
-	}
-	body, err := json.Marshal(testBill)
+func registerInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) (int, error) {
+	bill := acrrual_utils.GenerateBill(strconv.Itoa(orderNumber), logger)
+	body, err := json.Marshal(bill)
 	if err != nil {
-		logger.Debug("failed to marshal bill", zap.Error(err), zap.Int("orderNumber", orderNumber), zap.String("goods", fmt.Sprintf("%+v", testBill.Goods)))
+		logger.Debug("failed to marshal bill", zap.Error(err), zap.Int("orderNumber", orderNumber), zap.String("goods", fmt.Sprintf("%+v", bill.Goods)))
 		return 0, fmt.Errorf("failed to marshal body: %w", err)
 	}
 	reader := bytes.NewReader(body)
@@ -160,7 +156,7 @@ func registerInAccrual(cfg *config2.Config, orderNumber int, logger *zap.Logger)
 	return registerOrderReq.StatusCode, nil
 }
 
-func checkOrderStatusInAccrual(cfg *config2.Config, orderNumber int, logger *zap.Logger) (OrderAccrualResponse, error) {
+func checkOrderStatusInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) (OrderAccrualResponse, error) {
 	var respBody OrderAccrualResponse
 	orderStatusReq, err := http.Get(fmt.Sprintf("http://%s/api/orders/%d", cfg.AccrualSystemAddress, orderNumber))
 	if err != nil {
@@ -233,12 +229,12 @@ func orderWorker(h *OrderHandler, userID string) {
 	}
 }
 
-func OrderRouter(ctx *context.Context, app *config2.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, ordersQueue chan string) http.Handler {
+func OrderRouter(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, ordersQueue chan string) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middlewares.PanicRecoverer(app.Logger))
 	r.Use(middleware.RequestID)
-	r.Use(config2.GzipMiddleware)
+	r.Use(config.GzipMiddleware)
 	r.Use(middlewares.RequestLoggerMiddleware(app.Logger))
 	r.Use(middlewares.AuthorizationMiddleware(app))
 

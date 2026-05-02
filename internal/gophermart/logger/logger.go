@@ -72,7 +72,7 @@ func InitLogger(debug bool) (*zap.Logger, error) {
 	logFileConfig := zap.NewDevelopmentEncoderConfig()
 	fileEncoder := zapcore.NewJSONEncoder(logFileConfig)
 
-	logFile, err := os.OpenFile("./internal/logger/logs.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	logFile, err := os.OpenFile("./internal/gophermart/logger/logs.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		return nil, err
 	}
