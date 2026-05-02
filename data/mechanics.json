@@ -1,2 +1,5 @@
 {"match": "Bork", "reward": 10, "reward_type":  "%"}
 {"match": "Smeg", "reward": 300, "reward_type":  "pt"}
+{"match": "Lenovo", "reward": 7, "reward_type": "%"}
+{"match": "Samsung", "reward": 8, "reward_type": "%"}
+{"match": "Tefal", "reward": 150, "reward_type": "pt"}

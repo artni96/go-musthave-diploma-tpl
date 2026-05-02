@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 
 	"go.uber.org/zap"
 )
@@ -57,9 +58,23 @@ func GenerateBill(orderNumber string, logger *zap.Logger) Bill {
 		return defaultBill
 	}
 
+	randGoods := getRandomGoods(availableGoods)
+
 	bill := Bill{
 		OrderNumber: orderNumber,
-		Goods:       availableGoods,
+		Goods:       randGoods,
 	}
 	return bill
+}
+
+func getRandomGoods(availableGoods []Good) []Good {
+
+	var goods []Good
+	randAmount := rand.Intn((len(availableGoods) - 1) + 1)
+
+	for i := 1; i <= randAmount; i++ {
+		num := rand.Intn(len(availableGoods) - 1)
+		goods = append(goods, availableGoods[num])
+	}
+	return goods
 }
