@@ -15,6 +15,7 @@ type OrderService struct {
 }
 
 type OrderServiceInterface interface {
+	GetList(ctx context.Context, userID string) ([]model.OrderResponse, error)
 	Create(ctx context.Context, order model.OrderCreateRequest) (string, error)
 	Update(ctx context.Context, order model.OrderUpdateRequest) error
 	UpdateStatus(ctx context.Context, order model.OrderStatusUpdateRequest) error
@@ -25,6 +26,14 @@ func NewOrderService(repository orders.OrderRepositoryInterface, app *config.App
 		repository: repository,
 		app:        app,
 	}
+}
+
+func (s *OrderService) GetList(ctx context.Context, userID string) ([]model.OrderResponse, error) {
+	result, err := s.repository.GetList(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (s *OrderService) Create(ctx context.Context, order model.OrderCreateRequest) (string, error) {

@@ -46,6 +46,37 @@ func NewOrderHandler(ctx *context.Context, app *config.App, repository *orderrep
 	}
 }
 
+func (h *OrderHandler) GetList(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID := r.Header.Get("UserID")
+	orders, err := h.service.GetList(*h.ctx, userID)
+	if err != nil {
+		logMessage := logger.LogMessage{
+			Message: "Failed to fetch orders",
+			Fields:  []zap.Field{zap.Error(err), zap.String("UserID", userID)},
+		}
+		handler.ErrorResponse(w, "Internal server error", http.StatusInternalServerError, h.logger, logMessage, zap.InfoLevel)
+		return
+	}
+	if len(orders) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	resp, err := json.Marshal(orders)
+	if err != nil {
+		logMessage := logger.LogMessage{
+			Message: "Failed to marshal orders",
+			Fields:  []zap.Field{zap.Error(err), zap.String("UserID", userID)},
+		}
+		handler.ErrorResponse(w, "Internal server error", http.StatusInternalServerError, h.logger, logMessage, zap.InfoLevel)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
+}
+
 func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -123,16 +154,15 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
-type Bill struct {
-	OrderNumber string `json:"order"`
-	Goods       []Good `json:"goods"`
-}
-
-type Good struct {
-	Description string `json:"description"`
-	Price       int    `json:"price"`
-}
-
+//	type Bill struct {
+//		OrderNumber string `json:"order"`
+//		Goods       []Good `json:"goods"`
+//	}
+//
+//	type Good struct {
+//		Description string `json:"description"`
+//		Price       int    `json:"price"`
+//	}
 type OrderAccrualResponse struct {
 	Order   string `json:"order"`
 	Status  string `json:"status"`
@@ -218,7 +248,7 @@ func orderWorker(h *OrderHandler, userID string) {
 			err = h.service.Update(*h.ctx, model.OrderUpdateRequest{
 				Number:  orderData.Order,
 				Status:  orderData.Status,
-				Accrual: orderData.Accrual,
+				Accrual: orderData.Accrual * 100,
 				UserID:  userID,
 			})
 			if err != nil {
@@ -245,6 +275,7 @@ func OrderRouter(ctx *context.Context, app *config.App, repository *orderrepo.Or
 			w.Write([]byte(fmt.Sprintf(`{"error":"Method is not allowed"}`)))
 			return
 		})
+		r.Get("/", orderHandler.GetList)
 		r.Post("/", orderHandler.Create)
 	})
 	return r

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"go.uber.org/zap"
 )
@@ -48,15 +49,24 @@ func UploadMechanics(filename string, accrualAddr string, logger *zap.Logger) er
 			logger.Debug("failed to marshal mechanic", zap.Error(err), zap.String("filename", filename), zap.String("mechanic match", mechanic.Match))
 			continue
 		}
+
 		reader := bytes.NewReader(body)
 		res, err := http.Post(accrualAddr, "application/json", reader)
 		if err != nil {
-			logger.Debug("failed to create mechanic request", zap.Error(err), zap.String("mechanic match", mechanic.Match))
+			var ErrURLNotFound *url.Error
+			if errors.As(err, &ErrURLNotFound) {
+				logger.Debug("failed to upload mechanics - Accrual System is not running", zap.Error(err), zap.String("mechanic match", mechanic.Match))
+				return nil
+			}
+			logger.Debug("failed to upload mechanic", zap.Error(err), zap.String("mechanic match", mechanic.Match))
 		}
+
 		if res.StatusCode == http.StatusOK {
 			logger.Debug("mechanic successfully uploaded", zap.String("mechanic match", mechanic.Match))
 		} else if res.StatusCode == http.StatusConflict {
 			logger.Debug("mechanic already been uploaded", zap.String("mechanic match", mechanic.Match))
+		} else {
+			logger.Debug("failed to upload mechanics", zap.Error(err), zap.String("mechanic match", mechanic.Match), zap.String("response", res.Status))
 		}
 	}
 	return nil

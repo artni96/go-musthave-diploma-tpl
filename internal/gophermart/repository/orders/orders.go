@@ -20,6 +20,7 @@ var ErrUnavailableStatus = errors.New("status is unavailable")
 var AvailableOrderStatus = []string{"PROCESSING", "PROCESSED", "REGISTERED", "INVALID"}
 
 type OrderRepositoryInterface interface {
+	GetList(ctx context.Context, userID string) ([]model.OrderResponse, error)
 	Create(ctx context.Context, order model.OrderCreateRequest) (string, error)
 	Update(ctx context.Context, data model.OrderUpdateRequest) error
 	UpdateStatus(ctx context.Context, data model.OrderStatusUpdateRequest) error
@@ -35,6 +36,20 @@ func NewOrderRepository(db *sqlx.DB, logger *zap.Logger) *OrderRepository {
 		db:     db,
 		logger: logger,
 	}
+}
+
+func (r *OrderRepository) GetList(ctx context.Context, userID string) ([]model.OrderResponse, error) {
+	var result []model.OrderResponse
+
+	selectQuery := "SELECT number, status, (accrual / 100.0) as accrual, uploaded_at FROM orders WHERE user_id = $1 order by uploaded_at desc"
+	err := r.db.SelectContext(ctx, &result, selectQuery, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user orders: %w", err)
+	}
+	if len(result) == 0 {
+
+	}
+	return result, nil
 }
 
 func (r *OrderRepository) Create(ctx context.Context, inputOrder model.OrderCreateRequest) (string, error) {
@@ -84,7 +99,7 @@ func (r *OrderRepository) Update(ctx context.Context, data model.OrderUpdateRequ
 		r.logger.Info("failed to update order", zap.String("Order number", data.Number))
 		return fmt.Errorf("failed to update order: %w", ErrOrderNotFound)
 	}
-	
+
 	if data.Accrual == 0 {
 		if err = tx.Commit(); err != nil {
 			return fmt.Errorf("failed to commit bulk create: %w", err)
