@@ -50,6 +50,11 @@ func (h *OrderHandler) GetList(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	userID := r.Header.Get("UserID")
+	if userID == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	orders, err := h.service.GetList(*h.ctx, userID)
 	if err != nil {
 		logMessage := logger.LogMessage{
@@ -81,6 +86,11 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	userID := r.Header.Get("UserID")
+	if userID == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	var OrderNumber int
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -147,22 +157,13 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 		handler.ErrorResponse(w, "Internal server error", http.StatusInternalServerError, h.logger, logMessage, zap.InfoLevel)
 		return
 	}
+	w.WriteHeader(http.StatusAccepted)
 	h.ordersQueue <- strconv.Itoa(OrderNumber)
 	for i := 1; i < runtime.NumCPU(); i++ {
 		go orderWorker(h, userID)
 	}
-	w.WriteHeader(http.StatusAccepted)
 }
 
-//	type Bill struct {
-//		OrderNumber string `json:"order"`
-//		Goods       []Good `json:"goods"`
-//	}
-//
-//	type Good struct {
-//		Description string `json:"description"`
-//		Price       int    `json:"price"`
-//	}
 type OrderAccrualResponse struct {
 	Order   string `json:"order"`
 	Status  string `json:"status"`

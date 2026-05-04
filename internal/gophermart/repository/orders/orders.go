@@ -46,9 +46,6 @@ func (r *OrderRepository) GetList(ctx context.Context, userID string) ([]model.O
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch user orders: %w", err)
 	}
-	if len(result) == 0 {
-
-	}
 	return result, nil
 }
 
@@ -102,8 +99,9 @@ func (r *OrderRepository) Update(ctx context.Context, data model.OrderUpdateRequ
 
 	if data.Accrual == 0 {
 		if err = tx.Commit(); err != nil {
-			return fmt.Errorf("failed to commit bulk create: %w", err)
+			return fmt.Errorf("failed to commit transaction: %w", err)
 		}
+		fmt.Println("no rows affected")
 		return nil
 	}
 
@@ -132,7 +130,7 @@ func (r *OrderRepository) Update(ctx context.Context, data model.OrderUpdateRequ
 	}
 
 	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit bulk create: %w", err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	return nil
 }
