@@ -52,7 +52,7 @@ func (r *OrderRepository) GetList(ctx context.Context, userID string) ([]model.O
 func (r *OrderRepository) Create(ctx context.Context, inputOrder model.OrderCreateRequest) (string, error) {
 	var order model.Order
 	insertQuery := "INSERT INTO orders (user_id, number, uploaded_at, accrual, status) VALUES ($1, $2, $3, $4, $5) RETURNING id, user_id, number, accrual, status, uploaded_at"
-	err := r.db.GetContext(ctx, &order, insertQuery, inputOrder.UserID, inputOrder.Number, inputOrder.UploadedAt, 0, "REGISTERED")
+	err := r.db.GetContext(ctx, &order, insertQuery, inputOrder.UserID, inputOrder.Number, inputOrder.UploadedAt, 0, "NEW")
 
 	if err != nil {
 		var pgErr *pgconn.PgError

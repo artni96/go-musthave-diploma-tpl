@@ -304,7 +304,7 @@ func TestGetList(t *testing.T) {
 				for i, order := range userOrders {
 					assert.Equal(t, tt.orders[i].Number, userOrders[len(userOrders)-1-i].Number)
 					assert.Equal(t, order.Accrual, 0.0)
-					assert.Equal(t, order.Status, "REGISTERED")
+					assert.Equal(t, order.Status, "NEW")
 					assert.IsType(t, time.Now().Format(time.RFC3339), order.UploadedAt)
 				}
 			} else {
