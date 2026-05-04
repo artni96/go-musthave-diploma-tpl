@@ -23,14 +23,14 @@ import (
 )
 
 type UserHandler struct {
-	repository *usersrepo.UserRepository
-	service    *usersserv.UserService
+	repository usersrepo.UserRepositoryInterface
+	service    usersserv.UserServiceInterface
 	logger     *zap.Logger
 	ctx        *context.Context
 	cfg        *config2.Config
 }
 
-func NewUserHandler(ctx *context.Context, app *config2.App, repository *usersrepo.UserRepository, service *usersserv.UserService) *UserHandler {
+func NewUserHandler(ctx *context.Context, app *config2.App, repository usersrepo.UserRepositoryInterface, service usersserv.UserServiceInterface) *UserHandler {
 	return &UserHandler{
 		logger:     app.Logger,
 		ctx:        ctx,

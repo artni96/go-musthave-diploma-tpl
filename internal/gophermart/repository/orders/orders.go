@@ -17,7 +17,7 @@ var ErrProcessingOrder = errors.New("order being processed")
 var ErrOrderNotFound = errors.New("order not found")
 var ErrUnavailableStatus = errors.New("status is unavailable")
 
-var AvailableOrderStatus = []string{"PROCESSING", "PROCESSED", "REGISTERED", "INVALID"}
+var AvailableOrderStatus = []string{"PROCESSING", "PROCESSED", "NEW", "INVALID"}
 
 type OrderRepositoryInterface interface {
 	GetList(ctx context.Context, userID string) ([]model.OrderResponse, error)
@@ -101,7 +101,6 @@ func (r *OrderRepository) Update(ctx context.Context, data model.OrderUpdateRequ
 		if err = tx.Commit(); err != nil {
 			return fmt.Errorf("failed to commit transaction: %w", err)
 		}
-		fmt.Println("no rows affected")
 		return nil
 	}
 

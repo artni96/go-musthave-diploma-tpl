@@ -13,8 +13,10 @@ import (
 	config2 "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler/routers"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/logger"
+	balancesrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/balances"
 	ordersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/orders"
 	usersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/users"
+	balancesserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/balances"
 	ordersserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/orders"
 	usersserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/users"
 	"go.uber.org/zap"
@@ -47,7 +49,10 @@ func run(cfg *config2.Config) error {
 	orderRepository := ordersrepo.NewOrderRepository(db, app.Logger)
 	orderService := ordersserv.NewOrderService(orderRepository, &app)
 	ordersQueue := make(chan string, 100)
-	mainRouter := routers.InitRouter(&ctx, &app, userRepository, userService, orderRepository, orderService, ordersQueue)
+
+	balanceRepository := balancesrepo.NewBalanceRepository(db, app.Logger)
+	balanceService := balancesserv.NewBalanceService(balanceRepository, &app)
+	mainRouter := routers.InitRouter(&ctx, &app, userRepository, userService, orderRepository, orderService, ordersQueue, balanceRepository, balanceService)
 
 	newServer := &http.Server{
 		Addr:    app.Config.RunAddress,

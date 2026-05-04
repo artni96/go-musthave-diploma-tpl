@@ -7,7 +7,7 @@ CREATE TABLE users (
 CREATE TABLE orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID,
-    accrual INTEGER,
+    accrual INTEGER DEFAULT 0,
     status VARCHAR(255) NOT NULL ,
     number VARCHAR(255) NOT NULL UNIQUE,
     uploaded_at TIMESTAMPTZ NOT NULL,
@@ -16,8 +16,8 @@ CREATE TABLE orders (
 
 CREATE TABLE balance (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID,
-    current INTEGER,
-    withdrawn INTEGER,
-    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE 
+    user_id UUID NOT NULL ,
+    current INTEGER DEFAULT 0,
+    withdrawn INTEGER DEFAULT 0,
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 )

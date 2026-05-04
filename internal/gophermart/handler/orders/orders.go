@@ -26,16 +26,15 @@ import (
 )
 
 type OrderHandler struct {
-	repository       *orderrepo.OrderRepository
-	service          *ordersserv.OrderService
-	logger           *zap.Logger
-	ctx              *context.Context
-	cfg              *config.Config
-	ordersQueue      chan string
-	transactionQueue chan string
+	repository  orderrepo.OrderRepositoryInterface
+	service     ordersserv.OrderServiceInterface
+	logger      *zap.Logger
+	ctx         *context.Context
+	cfg         *config.Config
+	ordersQueue chan string
 }
 
-func NewOrderHandler(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, queue chan string) *OrderHandler {
+func NewOrderHandler(ctx *context.Context, app *config.App, repository orderrepo.OrderRepositoryInterface, service ordersserv.OrderServiceInterface, queue chan string) *OrderHandler {
 	return &OrderHandler{
 		repository:  repository,
 		service:     service,
