@@ -18,4 +18,4 @@ dev:
 ##accr: launch accrual system
 .PHONY: accr
 accr:
-	GOARCH=arm64 ./cmd/accrual/accrual_darwin_arm64
+	GOARCH=arm64 ./cmd/accrual/accrual_darwin_arm64 -a ${ACCRUAL_SYSTEM_ADDRESS}
