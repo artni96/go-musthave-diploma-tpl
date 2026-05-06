@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"runtime"
 	"strconv"
+	"sync"
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/acrrual_utils"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
@@ -157,9 +158,11 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusAccepted)
+	var wg sync.WaitGroup
 	h.ordersQueue <- strconv.Itoa(OrderNumber)
 	for i := 1; i < runtime.NumCPU(); i++ {
-		go orderWorker(h, userID)
+		wg.Add(1)
+		go orderWorker(h, userID, &wg)
 	}
 }
 
@@ -208,7 +211,8 @@ func checkOrderStatusInAccrual(cfg *config.Config, orderNumber int, logger *zap.
 	return respBody, nil
 }
 
-func orderWorker(h *OrderHandler, userID string) {
+func orderWorker(h *OrderHandler, userID string, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for i := range h.ordersQueue {
 		orderNumber, err := strconv.Atoi(i)
 		h.logger.Debug("processing order", zap.Int("orderNumber", orderNumber))
