@@ -76,7 +76,7 @@ func (r *OrderRepository) Update(ctx context.Context, data model.OrderUpdateRequ
 
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("BulkCreate - failure to begin transaction: %w", err)
+		return fmt.Errorf("failure to begin transaction: %w", err)
 	}
 
 	defer tx.Rollback()
