@@ -158,12 +158,14 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusAccepted)
+
 	var wg sync.WaitGroup
 	h.ordersQueue <- strconv.Itoa(OrderNumber)
 	for i := 1; i < runtime.NumCPU(); i++ {
 		wg.Add(1)
 		go orderWorker(h, userID, &wg)
 	}
+	defer wg.Wait()
 }
 
 type OrderAccrualResponse struct {
