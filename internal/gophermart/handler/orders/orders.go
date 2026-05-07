@@ -160,12 +160,14 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 
 	var wg sync.WaitGroup
-	h.ordersQueue <- strconv.Itoa(OrderNumber)
+
 	for i := 1; i < runtime.NumCPU(); i++ {
 		wg.Add(1)
 		go orderWorker(h, userID, &wg)
 	}
-	defer wg.Wait()
+	h.ordersQueue <- strconv.Itoa(OrderNumber)
+	close(h.ordersQueue)
+	wg.Wait()
 }
 
 type OrderAccrualResponse struct {
@@ -215,8 +217,8 @@ func checkOrderStatusInAccrual(cfg *config.Config, orderNumber int, logger *zap.
 
 func orderWorker(h *OrderHandler, userID string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	for i := range h.ordersQueue {
-		orderNumber, err := strconv.Atoi(i)
+	for order := range h.ordersQueue {
+		orderNumber, err := strconv.Atoi(order)
 		h.logger.Debug("processing order", zap.Int("orderNumber", orderNumber))
 		statusCode, err := registerInAccrual(h.cfg, orderNumber, h.logger)
 		if err != nil {
