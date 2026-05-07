@@ -166,7 +166,7 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 		go orderWorker(h, userID, &wg)
 	}
 	h.ordersQueue <- strconv.Itoa(OrderNumber)
-	close(h.ordersQueue)
+	//close(h.ordersQueue)
 	wg.Wait()
 }
 
