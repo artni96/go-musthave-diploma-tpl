@@ -33,3 +33,8 @@ type OrderResponse struct {
 	Accrual    float64 `json:"accrual,omitzero" db:"accrual"`
 	UploadedAt string  `json:"uploaded_at" db:"uploaded_at"`
 }
+
+type OrderQueue struct {
+	UserID string `json:"user_id"`
+	Number int    `json:"number"`
+}

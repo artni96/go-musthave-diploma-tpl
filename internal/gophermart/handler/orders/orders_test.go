@@ -40,7 +40,7 @@ func initConfig() (*context.Context, *sqlx.DB, *config.Config) {
 	return &ctx, db, &cfg
 }
 
-func initHandler(ctx context.Context, db *sqlx.DB, cfg config.Config) (*OrderHandler, chan string) {
+func initHandler(ctx context.Context, db *sqlx.DB, cfg config.Config) (*OrderHandler, chan model.OrderQueue) {
 	logger := zap.NewNop()
 
 	app := config.App{
@@ -65,7 +65,7 @@ func initHandler(ctx context.Context, db *sqlx.DB, cfg config.Config) (*OrderHan
 	}
 	testRepository := ordersrepo.NewOrderRepository(db, logger)
 	testService := ordersserv.NewOrderService(testRepository, &app)
-	testQueue := make(chan string)
+	testQueue := make(chan model.OrderQueue, 100)
 	h := NewOrderHandler(&ctx, &app, testRepository, testService, testQueue)
 
 	return h, testQueue

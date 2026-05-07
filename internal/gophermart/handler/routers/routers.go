@@ -7,6 +7,7 @@ import (
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler/balances"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler/orders"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler/users"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/model"
 	balancesrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/balances"
 	orderrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/orders"
 	usersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/users"
@@ -23,7 +24,7 @@ func InitRouter(
 	userService *usersserv.UserService,
 	orderRepository *orderrepo.OrderRepository,
 	orderService *ordersserv.OrderService,
-	ordersQueue chan string,
+	ordersQueue chan model.OrderQueue,
 	balanceRepository balancesrepo.BalanceRepositoryInterface,
 	balanceService balancesserv.BalanceServiceInterface,
 ) *chi.Mux {

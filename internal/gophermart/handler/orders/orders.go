@@ -1,18 +1,14 @@
 package orders
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"runtime"
 	"strconv"
-	"sync"
 
-	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/acrrual_utils"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler/middlewares"
@@ -32,10 +28,10 @@ type OrderHandler struct {
 	logger      *zap.Logger
 	ctx         *context.Context
 	cfg         *config.Config
-	ordersQueue chan string
+	ordersQueue chan model.OrderQueue
 }
 
-func NewOrderHandler(ctx *context.Context, app *config.App, repository orderrepo.OrderRepositoryInterface, service ordersserv.OrderServiceInterface, queue chan string) *OrderHandler {
+func NewOrderHandler(ctx *context.Context, app *config.App, repository orderrepo.OrderRepositoryInterface, service ordersserv.OrderServiceInterface, queue chan model.OrderQueue) *OrderHandler {
 	return &OrderHandler{
 		repository:  repository,
 		service:     service,
@@ -159,115 +155,21 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusAccepted)
 
-	var wg sync.WaitGroup
-
-	for i := 1; i < runtime.NumCPU(); i++ {
-		wg.Add(1)
-		go orderWorker(h, userID, &wg)
+	//var wg sync.WaitGroup
+	//
+	//for i := 1; i < runtime.NumCPU(); i++ {
+	//	//wg.Add(1)
+	//	wg.Go(func() { orderWorker(h, userID, &wg) })
+	//}
+	h.ordersQueue <- model.OrderQueue{
+		UserID: userID,
+		Number: OrderNumber,
 	}
-	h.ordersQueue <- strconv.Itoa(OrderNumber)
 	//close(h.ordersQueue)
-	wg.Wait()
+	//wg.Wait()
 }
 
-type OrderAccrualResponse struct {
-	Order   string `json:"order"`
-	Status  string `json:"status"`
-	Accrual int    `json:"accrual"`
-}
-
-func registerInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) (int, error) {
-	bill := acrrual_utils.GenerateBill(strconv.Itoa(orderNumber), logger)
-	body, err := json.Marshal(bill)
-	if err != nil {
-		logger.Debug("failed to marshal bill", zap.Error(err), zap.Int("orderNumber", orderNumber), zap.String("goods", fmt.Sprintf("%+v", bill.Goods)))
-		return 0, fmt.Errorf("failed to marshal body: %w", err)
-	}
-	reader := bytes.NewReader(body)
-	registerOrderReq, err := http.Post(fmt.Sprintf("http://%s/api/orders", cfg.AccrualSystemAddress), "application/json", reader)
-	if err != nil {
-		logger.Debug("failed to register a new order via accrual system", zap.Error(err), zap.Int("orderNumber", orderNumber))
-		return 0, fmt.Errorf("failed to register a new order via accrual system: %w", err)
-	}
-	defer registerOrderReq.Body.Close()
-	return registerOrderReq.StatusCode, nil
-}
-
-func checkOrderStatusInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) (OrderAccrualResponse, error) {
-	var respBody OrderAccrualResponse
-	orderStatusReq, err := http.Get(fmt.Sprintf("http://%s/api/orders/%d", cfg.AccrualSystemAddress, orderNumber))
-	if err != nil {
-		logger.Debug("failed to fetch order status", zap.Error(err))
-		return respBody, err
-	}
-	defer orderStatusReq.Body.Close()
-	respBodyBytes, err := io.ReadAll(orderStatusReq.Body)
-	if err != nil {
-		logger.Debug("failed to read order status", zap.Error(err))
-		return respBody, err
-	}
-
-	err = json.Unmarshal(respBodyBytes, &respBody)
-	if err != nil {
-		logger.Debug("failed to read order status", zap.Error(err))
-		return respBody, err
-	}
-	return respBody, nil
-}
-
-func orderWorker(h *OrderHandler, userID string, wg *sync.WaitGroup) {
-	defer wg.Done()
-	for order := range h.ordersQueue {
-		orderNumber, err := strconv.Atoi(order)
-		h.logger.Debug("processing order", zap.Int("orderNumber", orderNumber))
-		statusCode, err := registerInAccrual(h.cfg, orderNumber, h.logger)
-		if err != nil {
-			err = h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
-				Number: strconv.Itoa(orderNumber),
-				Status: "INVALID",
-			})
-			if err != nil {
-				h.logger.Info("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber), zap.String("status to change", "INVALID"))
-				return
-			}
-			h.logger.Info("failed to register in accrual", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
-			return
-		}
-
-		if statusCode == http.StatusAccepted {
-			err = h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
-				Number: strconv.Itoa(orderNumber),
-				Status: "PROCESSING",
-			})
-
-			if err != nil {
-				h.service.UpdateStatus(*h.ctx, model.OrderStatusUpdateRequest{
-					Number: strconv.Itoa(orderNumber),
-					Status: "INVALID",
-				})
-				h.logger.Info("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber), zap.String("status to change", "INVALID"))
-				return
-			}
-			orderData, err := checkOrderStatusInAccrual(h.cfg, orderNumber, h.logger)
-			if err != nil {
-				h.logger.Info("failed to get order data", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
-				return
-			}
-			err = h.service.Update(*h.ctx, model.OrderUpdateRequest{
-				Number:  orderData.Order,
-				Status:  orderData.Status,
-				Accrual: orderData.Accrual * 100,
-				UserID:  userID,
-			})
-			if err != nil {
-				h.logger.Info("failed to update order", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
-				return
-			}
-		}
-	}
-}
-
-func OrderRouter(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, ordersQueue chan string) http.Handler {
+func OrderRouter(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, ordersQueue chan model.OrderQueue) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middlewares.PanicRecoverer(app.Logger))

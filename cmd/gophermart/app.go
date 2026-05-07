@@ -10,9 +10,10 @@ import (
 	"time"
 
 	au "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/acrrual_utils"
-	config2 "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler/routers"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/logger"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/model"
 	balancesrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/balances"
 	ordersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/orders"
 	usersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/users"
@@ -22,11 +23,11 @@ import (
 	"go.uber.org/zap"
 )
 
-func run(cfg *config2.Config) error {
+func run(cfg *config.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	db, err := config2.InitDBConnection(ctx, cfg, true)
+	db, err := config.InitDBConnection(ctx, cfg, true)
 	if err != nil {
 		return err
 	}
@@ -36,7 +37,7 @@ func run(cfg *config2.Config) error {
 		log.Fatal("failed to initialize logger")
 	}
 
-	app := config2.App{
+	app := config.App{
 		Config: cfg,
 		DB:     db,
 		Logger: appLogger,
@@ -48,7 +49,7 @@ func run(cfg *config2.Config) error {
 
 	orderRepository := ordersrepo.NewOrderRepository(db, app.Logger)
 	orderService := ordersserv.NewOrderService(orderRepository, &app)
-	ordersQueue := make(chan string, 100)
+	ordersQueue := make(chan model.OrderQueue, 100)
 
 	balanceRepository := balancesrepo.NewBalanceRepository(db, app.Logger)
 	balanceService := balancesserv.NewBalanceService(balanceRepository, &app)
@@ -71,6 +72,10 @@ func run(cfg *config2.Config) error {
 		if err != nil {
 			app.Logger.Fatal("failed to start server", zap.Error(err))
 		}
+	}()
+
+	go func() {
+		ordersserv.WorkersPool(&ctx, orderService, ordersQueue, &app)
 	}()
 
 	shutdownChan := make(chan os.Signal, 1)
