@@ -23,16 +23,16 @@ type OrderAccrualResponse struct {
 	Accrual int    `json:"accrual"`
 }
 
-func WorkersPool(ctx *context.Context, orderService OrderServiceInterface, orderQueue <-chan model.OrderQueue, app *config.App) {
+func WorkersPool(ctx *context.Context, orderService OrderServiceInterface, orderQueue <-chan model.OrderQueue, app *config.App) *sync.WaitGroup {
 	var wg sync.WaitGroup
 
-	for i := 1; i < runtime.NumCPU(); i++ {
-		wg.Go(func() { orderWorker(ctx, orderService, &wg, orderQueue, app) })
+	for i := 0; i < runtime.NumCPU(); i++ {
+		wg.Go(func() { orderWorker(ctx, orderService, orderQueue, app) })
 	}
+	return &wg
 }
 
-func orderWorker(ctx *context.Context, service OrderServiceInterface, wg *sync.WaitGroup, orderQueue <-chan model.OrderQueue, app *config.App) {
-	defer wg.Done()
+func orderWorker(ctx *context.Context, service OrderServiceInterface, orderQueue <-chan model.OrderQueue, app *config.App) {
 
 	for order := range orderQueue {
 		orderNumber := order.Number

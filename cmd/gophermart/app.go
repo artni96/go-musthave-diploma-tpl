@@ -75,7 +75,8 @@ func run(cfg *config.Config) error {
 	}()
 
 	go func() {
-		ordersserv.WorkersPool(&ctx, orderService, ordersQueue, &app)
+		wg := ordersserv.WorkersPool(&ctx, orderService, ordersQueue, &app)
+		defer wg.Wait()
 	}()
 
 	shutdownChan := make(chan os.Signal, 1)
