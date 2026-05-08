@@ -6,6 +6,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/artni96/go-musthave-diploma-tpl/api/docs"
+	_ "github.com/artni96/go-musthave-diploma-tpl/api/docs"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
@@ -29,7 +31,7 @@ func ParseFlags() (*Config, error) {
 	fs.StringVar(&config.RunAddress, "a", "localhost:8081", "run address")
 	fs.StringVar(&config.DatabaseURI, "d", "", "database URI")
 	fs.StringVar(&config.AccrualSystemAddress, "r", "localhost:8080", "accrual system address")
-	//fs.StringVar(&config.SecretKey, "um", "", "upload mechanics")
+	docs.SwaggerInfo.Host = config.RunAddress
 
 	err := fs.Parse(os.Args[1:])
 	if err != nil {
@@ -39,6 +41,7 @@ func ParseFlags() (*Config, error) {
 	envRunAddress, ok := os.LookupEnv("RUN_ADDRESS")
 	if ok {
 		config.RunAddress = envRunAddress
+		docs.SwaggerInfo.Host = envRunAddress
 	}
 
 	envDatabaseURI, ok := os.LookupEnv("DATABASE_URI")

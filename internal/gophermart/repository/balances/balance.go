@@ -19,7 +19,7 @@ type BalanceRepository struct {
 
 type BalanceRepositoryInterface interface {
 	Get(ctx context.Context, userID string) (model.BalanceResponse, error)
-	Withdraw(ctx *context.Context, data model.TransactionCreateRequest) error
+	Withdraw(ctx *context.Context, data model.TransactionCreate) error
 }
 
 func NewBalanceRepository(db *sqlx.DB, logger *zap.Logger) *BalanceRepository {
@@ -40,7 +40,7 @@ func (r *BalanceRepository) Get(ctx context.Context, userID string) (model.Balan
 	return userBalance, nil
 }
 
-func (r *BalanceRepository) Withdraw(ctx *context.Context, data model.TransactionCreateRequest) error {
+func (r *BalanceRepository) Withdraw(ctx *context.Context, data model.TransactionCreate) error {
 
 	tx, err := r.db.Beginx()
 	if err != nil {
@@ -57,7 +57,7 @@ func (r *BalanceRepository) Withdraw(ctx *context.Context, data model.Transactio
 
 	if currentBalance < data.Sum {
 		r.logger.Info("not enough money", zap.Int64("current balance", currentBalance), zap.Int64("to withdraw", data.Sum), zap.String("user_id", data.UserID))
-		return fmt.Errorf("%w", ErrNotEnoughMoney)
+		return ErrNotEnoughMoney
 	}
 
 	insertTransactionRequest := `INSERT INTO transactions (user_id, "order", sum, processed_at) VALUES ($1, $2, $3, $4)`

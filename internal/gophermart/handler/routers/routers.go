@@ -3,6 +3,7 @@ package routers
 import (
 	"context"
 
+	_ "github.com/artni96/go-musthave-diploma-tpl/api/docs"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler/balances"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/handler/orders"
@@ -15,6 +16,7 @@ import (
 	ordersserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/orders"
 	usersserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/users"
 	"github.com/go-chi/chi/v5"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func InitRouter(
@@ -33,6 +35,7 @@ func InitRouter(
 	orderRouter := orders.OrderRouter(ctx, app, orderRepository, orderService, ordersQueue)
 	balanceRouter := balances.BalanceRouter(ctx, app, balanceRepository, balanceService)
 
+	mainRouter.Get("/swagger/*", httpSwagger.WrapHandler)
 	mainRouter.Mount("/api/user", userRouter)
 	mainRouter.Mount("/api/user/orders", orderRouter)
 	mainRouter.Mount("/api/user/balance", balanceRouter)

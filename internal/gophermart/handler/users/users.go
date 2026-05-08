@@ -20,6 +20,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	_ "github.com/artni96/go-musthave-diploma-tpl/api/docs"
 )
 
 type UserHandler struct {
@@ -40,6 +42,18 @@ func NewUserHandler(ctx *context.Context, app *config2.App, repository usersrepo
 	}
 }
 
+// Create godoc
+// @Summary User registration
+// @Description User creation by login and password
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param request body model.UserCreateRequest true "User registration by login and password"
+// @Success      200 "User successfully created and authenticated"
+// @Failure      400
+// @Failure      409 "User already exists"
+// @Failure      500
+// @Router       /api/user/register [post]
 func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
@@ -93,9 +107,21 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	})
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message":"user successfully created"}`))
+	w.Write([]byte(`{"message":"user successfully created and authenticated"}`))
 }
 
+// Login godoc
+// @Summary User authentification and authorization
+// @Description User authentification and authorization by login and password
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param request body model.UserLoginRequest true "User authentification and authorization by login and password"
+// @Success      200
+// @Failure      400
+// @Failure      401 "Wrong login or password"
+// @Failure      500
+// @Router       /api/user/login [post]
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
@@ -141,16 +167,16 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 					zap.String("Login", user.Login),
 				},
 			}
-			handler.ErrorResponse(w, "wrong user or password", http.StatusUnauthorized, h.logger, logMessage, zapcore.InfoLevel)
+			handler.ErrorResponse(w, "wrong login or password", http.StatusUnauthorized, h.logger, logMessage, zapcore.InfoLevel)
 			return
 		}
 		logMessage := logger.LogMessage{
-			Message: "failed to login - wrong user or password",
+			Message: "failed to login - wrong login or password",
 			Fields: []zap.Field{
-				zap.Error(err), zap.String("user", user.Login),
+				zap.Error(err), zap.String("login", user.Login),
 			},
 		}
-		handler.ErrorResponse(w, "wrong user or password", http.StatusUnauthorized, h.logger, logMessage, zapcore.InfoLevel)
+		handler.ErrorResponse(w, "wrong login or password", http.StatusUnauthorized, h.logger, logMessage, zapcore.InfoLevel)
 		return
 	}
 

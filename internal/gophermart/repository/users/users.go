@@ -25,9 +25,16 @@ type UserRepository struct {
 }
 
 func (r *UserRepository) Create(ctx context.Context, user model.UserCreateRequest) (string, error) {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return "", fmt.Errorf("failure to begin transaction: %w", err)
+	}
+
+	defer tx.Rollback()
+
 	var userID string
-	insertQuery := "INSERT INTO users (login, password) VALUES ($1, $2) RETURNING id"
-	err := r.db.GetContext(ctx, &userID, insertQuery, user.Login, user.Password)
+	insertUserQuery := "INSERT INTO users (login, password) VALUES ($1, $2) RETURNING id"
+	err = tx.GetContext(ctx, &userID, insertUserQuery, user.Login, user.Password)
 
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -39,6 +46,21 @@ func (r *UserRepository) Create(ctx context.Context, user model.UserCreateReques
 		return "", fmt.Errorf("failed to create user: %w", err)
 	}
 
+	insertBalanceQuery := "INSERT INTO balance (user_id, current, withdrawn) VALUES ($1, $2, $3)"
+	_, err = tx.ExecContext(ctx, insertBalanceQuery, userID, 0, 0)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			r.logger.Info("User balance already exists", zap.Error(err), zap.String("login", user.Login))
+			return "", ErrUserAlreadyExists
+		}
+		r.logger.Debug("failed to create user balance", zap.Error(err))
+		return "", fmt.Errorf("failed to create user balance: %w", err)
+	}
+	if err = tx.Commit(); err != nil {
+		r.logger.Debug("failed to create user", zap.Error(err), zap.String("login", user.Login))
+		return "", fmt.Errorf("failed to create user: %w", err)
+	}
 	r.logger.Debug("user successfully created", zap.String("username", user.Login))
 	return userID, nil
 }

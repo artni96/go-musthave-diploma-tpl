@@ -1,0 +1,211 @@
+basePath: /
+definitions:
+  model.BalanceResponse:
+    properties:
+      current:
+        type: number
+      withdrawn:
+        type: number
+    type: object
+  model.OrderResponse:
+    properties:
+      accrual:
+        default: 1
+        type: number
+      number:
+        type: string
+      status:
+        type: string
+      uploaded_at:
+        type: string
+    type: object
+  model.TransactionCreateRequest:
+    properties:
+      order:
+        type: string
+      sum:
+        type: integer
+    type: object
+  model.UserCreateRequest:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+  model.UserLoginRequest:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is HTTP API that provides main features of Gophermart loyalty
+    program:\n    -user registration, authentification and authorization;\n    -order
+    registration; \n   -user order list handling; \n    -user loyalty system management;\n    -registered
+    user orders management
+  title: Gophermart
+  version: "1.0"
+paths:
+  /api/user/balance:
+    get:
+      consumes:
+      - application/json
+      description: 'Getting user balance:'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.BalanceResponse'
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+      summary: Getting user balance (authorization required)
+      tags:
+      - balance
+  /api/user/balance/withdraw:
+    post:
+      consumes:
+      - application/json
+      description: 'Withdraw bonuses for order:'
+      parameters:
+      - description: Withdraw bonuses for order
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TransactionCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+        "402":
+          description: Not enough money
+        "422":
+          description: Invalid order number
+        "500":
+          description: Internal Server Error
+      summary: Withdraw bonuses for order (authorization required)
+      tags:
+      - balance
+  /api/user/login:
+    post:
+      consumes:
+      - application/json
+      description: User authentification and authorization by login and password
+      parameters:
+      - description: User authentification and authorization by login and password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UserLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "401":
+          description: Wrong login or password
+        "500":
+          description: Internal Server Error
+      summary: User authentification and authorization
+      tags:
+      - users
+  /api/user/orders:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        possible statuses:
+        -NEW - order accepted, has not been processed yet;
+        -PROCESSING - order is being processed;
+        -INVALID - accrual system refused order;
+        -PROCESSED - order has been successfully processed
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.OrderResponse'
+            type: array
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+      summary: Getting user order list (authorization required)
+      tags:
+      - orders
+    post:
+      consumes:
+      - text/plain
+      description: Order number has to be valid for Luhn algorithm
+      parameters:
+      - description: Order registration
+        in: body
+        name: request
+        required: true
+        schema:
+          type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Order being processed
+        "202":
+          description: Accepted
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "409":
+          description: Order already created by another user
+        "422":
+          description: Invalid order number
+        "500":
+          description: Internal Server Error
+      summary: Order registration (authorization required)
+      tags:
+      - orders
+  /api/user/register:
+    post:
+      consumes:
+      - application/json
+      description: User creation by login and password
+      parameters:
+      - description: User registration by login and password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UserCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User successfully created and authenticated
+        "400":
+          description: Bad Request
+        "409":
+          description: User already exists
+        "500":
+          description: Internal Server Error
+      summary: User registration
+      tags:
+      - users
+swagger: "2.0"

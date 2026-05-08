@@ -16,7 +16,6 @@ import (
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/logger"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/model"
 	balancesrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/balances"
-	transactionsrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/transactions"
 	balancesserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/balances"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/validators"
 	"github.com/go-chi/chi/v5"
@@ -43,6 +42,16 @@ func NewBalanceHandler(ctx context.Context, repository balancesrepo.BalanceRepos
 	}
 }
 
+// Get godoc
+// @Summary Getting user balance (authorization required)
+// @Description Getting user balance:
+// @Tags balance
+// @Accept json
+// @Produce json
+// @Success      200 {object} model.BalanceResponse
+// @Failure      401
+// @Failure      500
+// @Router       /api/user/balance [get]
 func (h *BalanceHandler) Get(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -74,6 +83,19 @@ func (h *BalanceHandler) Get(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+// Withdraw godoc
+// @Summary Withdraw bonuses for order (authorization required)
+// @Description Withdraw bonuses for order:
+// @Tags balance
+// @Accept json
+// @Produce json
+// @Param request body model.TransactionCreateRequest true "Withdraw bonuses for order"
+// @Success      200
+// @Failure      401
+// @Failure      402 "Not enough money"
+// @Failure      422 "Invalid order number"
+// @Failure      500
+// @Router       /api/user/balance/withdraw [post]
 func (h *BalanceHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -92,7 +114,7 @@ func (h *BalanceHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
 		handler.ErrorResponse(w, "invalid request body", http.StatusUnprocessableEntity, h.logger, logMessage, zap.DebugLevel)
 	}
 	defer r.Body.Close()
-	var transaction model.TransactionCreateRequest
+	var transaction model.TransactionCreate
 	err = json.Unmarshal(body, &transaction)
 	if err != nil {
 		logMessage := logger.LogMessage{
@@ -136,12 +158,12 @@ func (h *BalanceHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
 	err = h.service.Withdraw(h.ctx, transaction)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.Is(err, transactionsrepo.ErrNotEnoughMoney) {
+		if errors.Is(err, balancesrepo.ErrNotEnoughMoney) {
 			logMessage := logger.LogMessage{
 				Message: err.Error(),
 				Fields:  []zap.Field{zap.Error(err), zap.String("UserID", userID)},
 			}
-			handler.ErrorResponse(w, "invalid request body", http.StatusPaymentRequired, h.logger, logMessage, zap.DebugLevel)
+			handler.ErrorResponse(w, err.Error(), http.StatusPaymentRequired, h.logger, logMessage, zap.DebugLevel)
 			return
 		} else if errors.As(err, &pgErr) {
 			logMessage := logger.LogMessage{
@@ -152,10 +174,10 @@ func (h *BalanceHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		logMessage := logger.LogMessage{
-			Message: "failed to withdraw",
+			Message: "failed to withdraw bonuses for order",
 			Fields:  []zap.Field{zap.Error(err), zap.String("UserID", userID), zap.String("OrderNumber", transaction.Order), zap.Int64("Sum", transaction.Sum)},
 		}
-		handler.ErrorResponse(w, "failed to withdraw", http.StatusInternalServerError, h.logger, logMessage, zap.DebugLevel)
+		handler.ErrorResponse(w, "failed to withdraw bonuses for order", http.StatusInternalServerError, h.logger, logMessage, zap.DebugLevel)
 		return
 	}
 }

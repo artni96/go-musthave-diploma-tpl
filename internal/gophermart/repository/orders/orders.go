@@ -139,6 +139,7 @@ func (r *OrderRepository) Update(ctx context.Context, data model.OrderUpdateRequ
 	if err = tx.Commit(); err != nil {
 		updateOrderStatusQuery := "UPDATE orders SET status = $1 WHERE number = $2"
 		tx.ExecContext(ctx, updateOrderStatusQuery, "INVALID", data.Number)
+		r.logger.Debug("failed to commit transaction", zap.Error(err), zap.String("Order number", data.Number), zap.String("User ID", data.UserID))
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	return nil

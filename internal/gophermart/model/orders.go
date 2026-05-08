@@ -30,7 +30,7 @@ type OrderStatusUpdateRequest struct {
 type OrderResponse struct {
 	Number     string  `json:"number" db:"number"`
 	Status     string  `json:"status" db:"status"`
-	Accrual    float64 `json:"accrual,omitzero" db:"accrual"`
+	Accrual    float64 `json:"accrual,omitzero" db:"accrual" default:"1"`
 	UploadedAt string  `json:"uploaded_at" db:"uploaded_at"`
 }
 

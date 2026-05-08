@@ -1,13 +1,9 @@
 package transactions
 
 import (
-	"errors"
-
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
-
-var ErrNotEnoughMoney = errors.New("not enough money")
 
 type TransactionRepository struct {
 	db     *sqlx.DB

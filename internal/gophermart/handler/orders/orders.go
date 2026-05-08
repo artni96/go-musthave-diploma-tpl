@@ -42,6 +42,21 @@ func NewOrderHandler(ctx *context.Context, app *config.App, repository orderrepo
 	}
 }
 
+// GetList godoc
+// @Summary Getting user order list (authorization required)
+// @Description possible statuses:
+// @Description -NEW - order accepted, has not been processed yet;
+// @Description -PROCESSING - order is being processed;
+// @Description -INVALID - accrual system refused order;
+// @Description -PROCESSED - order has been successfully processed
+// @Tags orders
+// @Accept json
+// @Produce json
+// @Success      200 {array} model.OrderResponse
+// @Success      204
+// @Failure      401
+// @Failure      500
+// @Router       /api/user/orders [get]
 func (h *OrderHandler) GetList(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -78,6 +93,21 @@ func (h *OrderHandler) GetList(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+// Create order godoc
+// @Summary Order registration (authorization required)
+// @Description Order number has to be valid for Luhn algorithm
+// @Tags orders
+// @Accept text/plain
+// @Produce json
+// @Param request body integer true "Order registration"
+// @Success      200 "Order being processed"
+// @Success      202
+// @Failure      400
+// @Failure      401
+// @Failure      409 "Order already created by another user"
+// @Failure      422 "Invalid order number"
+// @Failure      500
+// @Router       /api/user/orders [post]
 func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -155,18 +185,10 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusAccepted)
 
-	//var wg sync.WaitGroup
-	//
-	//for i := 1; i < runtime.NumCPU(); i++ {
-	//	//wg.Add(1)
-	//	wg.Go(func() { orderWorker(h, userID, &wg) })
-	//}
 	h.ordersQueue <- model.OrderQueue{
 		UserID: userID,
 		Number: OrderNumber,
 	}
-	//close(h.ordersQueue)
-	//wg.Wait()
 }
 
 func OrderRouter(ctx *context.Context, app *config.App, repository *orderrepo.OrderRepository, service *ordersserv.OrderService, ordersQueue chan model.OrderQueue) http.Handler {

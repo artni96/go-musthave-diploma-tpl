@@ -21,6 +21,8 @@ import (
 	ordersserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/orders"
 	usersserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/users"
 	"go.uber.org/zap"
+
+	_ "github.com/artni96/go-musthave-diploma-tpl/api/docs"
 )
 
 func run(cfg *config.Config) error {
