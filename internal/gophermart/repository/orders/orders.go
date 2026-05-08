@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/model"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -97,8 +98,8 @@ func (r *OrderRepository) Update(ctx context.Context, data model.OrderUpdateRequ
 		return fmt.Errorf("failed to update order: %w", ErrOrderNotFound)
 	}
 
-	insertTransactionQuery := `INSERT INTO transactions (user_id, "order", sum) VALUES ($1, $2, $3)`
-	res, err = tx.ExecContext(ctx, insertTransactionQuery, data.UserID, data.Number, data.Accrual)
+	insertTransactionQuery := `INSERT INTO transactions (user_id, "order", sum, processed_at) VALUES ($1, $2, $3, $4)`
+	res, err = tx.ExecContext(ctx, insertTransactionQuery, data.UserID, data.Number, data.Accrual, time.Now().Format(time.RFC3339))
 	if err != nil {
 		r.logger.Info("failed to insert transaction", zap.Error(err), zap.String("Order number", data.Number), zap.String("user id", data.UserID))
 		return fmt.Errorf("failed to insert transaction: %w", err)

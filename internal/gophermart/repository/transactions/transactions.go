@@ -1,11 +1,8 @@
 package transactions
 
 import (
-	"context"
 	"errors"
-	"fmt"
 
-	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/model"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
@@ -17,48 +14,12 @@ type TransactionRepository struct {
 	logger *zap.Logger
 }
 
+type TransactionRepositoryInterface interface {
+}
+
 func NewTransactionRepository(db *sqlx.DB, logger *zap.Logger) *TransactionRepository {
 	return &TransactionRepository{
 		db:     db,
 		logger: logger,
 	}
-}
-
-func (r *TransactionRepository) Create(ctx *context.Context, data model.Transaction) error {
-
-	tx, err := r.db.Beginx()
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-	var currentBalance int64
-	currentBalanceQuery := "SELECT current FROM balance where user_id = $1"
-
-	err = tx.GetContext(*ctx, &currentBalance, currentBalanceQuery, data.UserID)
-	if err != nil {
-		return fmt.Errorf("failed to get current user balance: %w", err)
-	}
-
-	if currentBalance < data.Sum {
-		r.logger.Info("not enough money", zap.Int64("current balance", currentBalance), zap.Int64("to withdraw", data.Sum), zap.String("user_id", data.UserID))
-		return fmt.Errorf("%w", ErrNotEnoughMoney)
-	}
-
-	insertTransactionRequest := `INSERT INTO transactions (user_id, "order", sum) VALUES ($1, $2, $3)`
-	_, err = tx.ExecContext(*ctx, insertTransactionRequest, data.UserID, data.Order, -data.Sum)
-	if err != nil {
-		r.logger.Info("failed to create new transaction error", zap.Error(err), zap.String("user_id", data.UserID), zap.String("order", data.Order), zap.Int64("sum", data.Sum))
-		return fmt.Errorf("failed to create new transaction error: %w", err)
-	}
-
-	updateBalanceRequest := "UPDATE balance SET current=$1, withdrawn=$2 WHERE user_id = $3"
-	_, err = tx.ExecContext(*ctx, updateBalanceRequest, currentBalance, data.UserID, data.Order)
-	if err != nil {
-		r.logger.Info("failed to update user balance after making transaction", zap.Error(err), zap.String("user_id", data.UserID))
-		return fmt.Errorf("failed to update user balance: %w", err)
-	}
-	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-	return nil
 }

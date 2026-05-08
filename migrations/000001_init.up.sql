@@ -27,5 +27,6 @@ CREATE TABLE transactions (
     user_id UUID NOT NULL,
     "order" VARCHAR(255) NOT NULL UNIQUE,
     sum INTEGER DEFAULT 0,
+    processed_at TIMESTAMP NOT NULL,
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 )
