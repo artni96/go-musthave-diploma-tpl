@@ -86,6 +86,8 @@ func orderWorker(ctx *context.Context, service OrderServiceInterface, orderQueue
 				return
 			}
 			app.Logger.Debug("order successfully handled", zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber), zap.String("status", "PROCESSING"))
+		} else {
+			app.Logger.Debug("failed to handle order", zap.Int("order number", order.Number))
 		}
 	}
 }
@@ -106,7 +108,7 @@ func registerInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) 
 	}
 	logger.Debug("successful post request to `/api/orders`", zap.Int("orderNumber", orderNumber))
 	defer registerOrderReq.Body.Close()
-	logger.Debug("order successfully registered in accrual system", zap.Int("orderNumber", orderNumber), zap.String("goods", fmt.Sprintf("%+v", bill.Goods)))
+	logger.Debug("order successfully registered in accrual system", zap.Int("orderNumber", orderNumber), zap.String("goods", fmt.Sprintf("%+v", bill.Goods)), zap.Int("status code", registerOrderReq.StatusCode))
 	return registerOrderReq.StatusCode, nil
 }
 
