@@ -49,12 +49,12 @@ func GenerateBill(orderNumber string, logger *zap.Logger) Bill {
 
 	scanner, err := NewFileScanner(filename)
 	if err != nil {
-		logger.Info("file with goods not found", zap.Error(err), zap.String("filename", filename))
+		logger.Debug("file with goods not found", zap.Error(err), zap.String("filename", filename))
 		return defaultBill
 	}
 	availableGoods, err := scanner.CollectGoodsData()
 	if err != nil || availableGoods == nil {
-		logger.Info("failed to collect goods data", zap.Error(err), zap.String("filename", filename))
+		logger.Debug("failed to collect goods data", zap.Error(err), zap.String("filename", filename))
 		return defaultBill
 	}
 
@@ -64,6 +64,7 @@ func GenerateBill(orderNumber string, logger *zap.Logger) Bill {
 		OrderNumber: orderNumber,
 		Goods:       randGoods,
 	}
+	logger.Debug("successfully generated bill", zap.Any("order number", bill.OrderNumber), zap.Any("bill", bill))
 	return bill
 }
 
