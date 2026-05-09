@@ -177,7 +177,7 @@ func (h *BalanceHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
 		}
 		logMessage := logger.LogMessage{
 			Message: "failed to withdraw bonuses for order",
-			Fields:  []zap.Field{zap.Error(err), zap.String("UserID", userID), zap.String("OrderNumber", transaction.Order), zap.Int64("Sum", transaction.Sum)},
+			Fields:  []zap.Field{zap.Error(err), zap.String("UserID", userID), zap.String("OrderNumber", transaction.Order), zap.Float64("Sum", transaction.Sum)},
 		}
 		handler.ErrorResponse(w, "internal server error", http.StatusInternalServerError, h.logger, logMessage, zap.DebugLevel)
 		return
