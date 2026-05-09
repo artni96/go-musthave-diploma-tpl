@@ -32,13 +32,13 @@ type BalanceHandler struct {
 	cfg        *config.Config
 }
 
-func NewBalanceHandler(ctx context.Context, repository balancesrepo.BalanceRepositoryInterface, service balancesserv.BalanceServiceInterface, logger *zap.Logger, cfg *config.Config) *BalanceHandler {
+func NewBalanceHandler(ctx context.Context, app *config.App, repository balancesrepo.BalanceRepositoryInterface, service balancesserv.BalanceServiceInterface) *BalanceHandler {
 	return &BalanceHandler{
 		repository: repository,
 		service:    service,
-		logger:     logger,
+		logger:     app.Logger,
 		ctx:        &ctx,
-		cfg:        cfg,
+		cfg:        app.Config,
 	}
 }
 
@@ -68,6 +68,7 @@ func (h *BalanceHandler) Get(w http.ResponseWriter, r *http.Request) {
 			Fields:  []zap.Field{zap.Error(err), zap.String("userID", userID)},
 		}
 		handler.ErrorResponse(w, "Internal server error", http.StatusInternalServerError, h.logger, logMessage, zap.InfoLevel)
+		return
 	}
 
 	resp, err := json.Marshal(balance)
@@ -77,6 +78,7 @@ func (h *BalanceHandler) Get(w http.ResponseWriter, r *http.Request) {
 			Fields:  []zap.Field{zap.Error(err), zap.String("userID", userID)},
 		}
 		handler.ErrorResponse(w, "Internal server error", http.StatusInternalServerError, h.logger, logMessage, zap.InfoLevel)
+		return
 
 	}
 	w.WriteHeader(http.StatusOK)
@@ -177,7 +179,7 @@ func (h *BalanceHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
 			Message: "failed to withdraw bonuses for order",
 			Fields:  []zap.Field{zap.Error(err), zap.String("UserID", userID), zap.String("OrderNumber", transaction.Order), zap.Int64("Sum", transaction.Sum)},
 		}
-		handler.ErrorResponse(w, "failed to withdraw bonuses for order", http.StatusInternalServerError, h.logger, logMessage, zap.DebugLevel)
+		handler.ErrorResponse(w, "internal server error", http.StatusInternalServerError, h.logger, logMessage, zap.DebugLevel)
 		return
 	}
 }
@@ -191,7 +193,7 @@ func BalanceRouter(ctx *context.Context, app *config.App, repository balancesrep
 	r.Use(middlewares.RequestLoggerMiddleware(app.Logger))
 	r.Use(middlewares.AuthorizationMiddleware(app))
 
-	balanceHandler := NewBalanceHandler(*ctx, repository, service, app.Logger, app.Config)
+	balanceHandler := NewBalanceHandler(*ctx, app, repository, service)
 	r.Route("/", func(r chi.Router) {
 		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)

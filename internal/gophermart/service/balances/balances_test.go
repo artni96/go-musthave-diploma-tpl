@@ -54,8 +54,8 @@ func initService(t *testing.T) (*BalanceService, *mocks.MockBalanceRepositoryInt
 	}
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	m := mocks.NewMockBalanceRepositoryInterface(ctrl)
-	testService := NewBalanceService(m, &app)
+	repositoryMock := mocks.NewMockBalanceRepositoryInterface(ctrl)
+	testService := NewBalanceService(repositoryMock, &app)
 
 	userIDQuery := "INSERT INTO users (login, password) VALUES ($1, $2) returning id;"
 	var user1 string
@@ -68,7 +68,7 @@ func initService(t *testing.T) (*BalanceService, *mocks.MockBalanceRepositoryInt
 	if err != nil {
 		log.Fatal(err)
 	}
-	return testService, m, ctx, user1, user2
+	return testService, repositoryMock, ctx, user1, user2
 }
 
 func TestWithdraw(t *testing.T) {

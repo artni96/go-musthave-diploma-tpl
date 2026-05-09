@@ -82,7 +82,6 @@ func PanicRecoverer(logger *zap.Logger) func(http.Handler) http.Handler {
 						Error: "Internal Server Error",
 					})
 					w.Write(resp)
-
 					return
 				}
 			}()
