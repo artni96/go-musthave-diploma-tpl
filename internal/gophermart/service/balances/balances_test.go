@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	config2 "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
 	mocks "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/mocks/repository/balances"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/model"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/balances"
@@ -20,19 +20,20 @@ import (
 )
 
 func initService(t *testing.T) (*BalanceService, *mocks.MockBalanceRepositoryInterface, context.Context, string, string) {
-	testDBDSN := "host=localhost port=5432 user=test password=test dbname=gophermart_test sslmode=disable"
-	cfg := config2.Config{
+	//testDBDSN := "host=localhost port=5432 user=test password=test dbname=gophermart_test sslmode=disable"
+	testDBDSN := config.TestsDBDSN()
+	cfg := config.Config{
 		DatabaseURI: testDBDSN,
 	}
 	ctx := context.Background()
 
 	logger := zap.NewNop()
-	db, err := config2.InitDBConnection(ctx, &cfg, false)
+	db, err := config.InitDBConnection(ctx, &cfg, false)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	app := config2.App{
+	app := config.App{
 		DB:     db,
 		Config: &cfg,
 		Logger: logger,

@@ -27,7 +27,8 @@ import (
 )
 
 func initConfig() (*context.Context, *sqlx.DB, *config.Config) {
-	testDBDSN := "host=localhost port=5432 user=test password=test dbname=gophermart_test sslmode=disable"
+	//testDBDSN := "host=localhost port=5432 user=test password=test dbname=gophermart_test sslmode=disable"
+	testDBDSN := config.TestsDBDSN()
 	cfg := config.Config{
 		DatabaseURI: testDBDSN,
 	}
@@ -72,7 +73,7 @@ func initHandler(ctx context.Context, db *sqlx.DB, cfg config.Config) (*OrderHan
 }
 
 func initUser(login string, password string) string {
-	testDBDSN := "host=localhost port=5432 user=test password=test dbname=gophermart_test sslmode=disable"
+	testDBDSN := config.TestsDBDSN()
 	cfg := config.Config{
 		DatabaseURI: testDBDSN,
 	}

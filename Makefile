@@ -19,3 +19,13 @@ dev:
 .PHONY: accr
 accr:
 	GOARCH=arm64 ./cmd/accrual/accrual_darwin_arm64 -a ${ACCRUAL_SYSTEM_ADDRESS}
+
+##test: run unit tests
+.PHONY: test
+test:
+	GOARCH=arm64 go test ./...
+
+##test-cover: run unit tests with coverage
+.PHONY: test-cover
+test-cover:
+	GOARCH=arm64 go test ./... -cover

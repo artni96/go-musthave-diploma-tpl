@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	config2 "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
-	users2 "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/users"
-	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/users"
+	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
+	usersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/users"
+	usersserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/users"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/stretchr/testify/assert"
@@ -21,19 +21,20 @@ import (
 )
 
 func initHandler() *UserHandler {
-	testDBDSN := "host=localhost port=5432 user=test password=test dbname=gophermart_test sslmode=disable"
-	cfg := config2.Config{
+	//testDBDSN := "host=localhost port=5432 user=test password=test dbname=gophermart_test sslmode=disable"
+	testDBDSN := config.TestsDBDSN()
+	cfg := config.Config{
 		DatabaseURI: testDBDSN,
 	}
 	ctx := context.Background()
 
 	logger := zap.NewNop()
-	db, err := config2.InitDBConnection(ctx, &cfg, false)
+	db, err := config.InitDBConnection(ctx, &cfg, false)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	app := config2.App{
+	app := config.App{
 		DB:     db,
 		Config: &cfg,
 		Logger: logger,
@@ -53,8 +54,8 @@ func initHandler() *UserHandler {
 	if err := migrator.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Fatal(fmt.Errorf("failed to run migrations: %w", err))
 	}
-	testRepository := users2.NewUserRepository(db, logger)
-	testService := users.NewUserService(testRepository, &app)
+	testRepository := usersrepo.NewUserRepository(db, logger)
+	testService := usersserv.NewUserService(testRepository, &app)
 	h := NewUserHandler(&ctx, &app, testRepository, testService)
 	return h
 }
