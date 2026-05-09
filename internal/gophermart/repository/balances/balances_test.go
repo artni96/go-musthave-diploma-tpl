@@ -224,7 +224,7 @@ func TestGet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := repo.Get(*ctx, tt.userID)
+			res, err := repo.Get(ctx, tt.userID)
 			if err != nil {
 				if tt.name == "failure - user not found" {
 					assert.Error(t, err)

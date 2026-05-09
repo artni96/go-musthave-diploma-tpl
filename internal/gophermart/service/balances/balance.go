@@ -14,7 +14,7 @@ type BalanceService struct {
 }
 
 type BalanceServiceInterface interface {
-	Get(ctx context.Context, userID string) (model.BalanceResponse, error)
+	Get(ctx *context.Context, userID string) (model.BalanceResponse, error)
 	Withdraw(ctx *context.Context, data model.TransactionCreate) error
 }
 
@@ -25,7 +25,7 @@ func NewBalanceService(repository balances.BalanceRepositoryInterface, app *conf
 	}
 }
 
-func (s *BalanceService) Get(ctx context.Context, userID string) (model.BalanceResponse, error) {
+func (s *BalanceService) Get(ctx *context.Context, userID string) (model.BalanceResponse, error) {
 	result, err := s.repository.Get(ctx, userID)
 	if err != nil {
 		return model.BalanceResponse{}, err

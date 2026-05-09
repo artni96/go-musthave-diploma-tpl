@@ -18,7 +18,7 @@ type BalanceRepository struct {
 }
 
 type BalanceRepositoryInterface interface {
-	Get(ctx context.Context, userID string) (model.BalanceResponse, error)
+	Get(ctx *context.Context, userID string) (model.BalanceResponse, error)
 	Withdraw(ctx *context.Context, data model.TransactionCreate) error
 }
 
@@ -29,10 +29,10 @@ func NewBalanceRepository(db *sqlx.DB, logger *zap.Logger) *BalanceRepository {
 	}
 }
 
-func (r *BalanceRepository) Get(ctx context.Context, userID string) (model.BalanceResponse, error) {
+func (r *BalanceRepository) Get(ctx *context.Context, userID string) (model.BalanceResponse, error) {
 	var userBalance model.BalanceResponse
 	selectQuery := "SELECT (current/100) as current, (withdrawn/100) as withdrawn FROM balance WHERE user_id = $1"
-	err := r.db.GetContext(ctx, &userBalance, selectQuery, userID)
+	err := r.db.GetContext(*ctx, &userBalance, selectQuery, userID)
 	if err != nil {
 		r.logger.Info("failed to get balances", zap.String("user_id", userID), zap.Error(err))
 		return userBalance, fmt.Errorf("failed to get user balances: %w", err)

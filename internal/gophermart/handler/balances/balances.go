@@ -61,7 +61,7 @@ func (h *BalanceHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	balance, err := h.service.Get(*h.ctx, userID)
+	balance, err := h.service.Get(h.ctx, userID)
 	if err != nil {
 		logMessage := logger.LogMessage{
 			Message: "Error getting balance",
