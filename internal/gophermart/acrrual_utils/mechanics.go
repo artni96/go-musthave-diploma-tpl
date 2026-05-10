@@ -31,7 +31,7 @@ func (s *FileScanner) CollectMechanicsData() ([]Mechanic, error) {
 }
 
 func UploadMechanics(filename string, accrualAddr string, logger *zap.Logger) error {
-	accrualAddr = fmt.Sprintf("http://%s/api/goods", accrualAddr)
+	accrualAddr = fmt.Sprintf("%s/api/goods", accrualAddr)
 	scanner, err := NewFileScanner(filename)
 	if err != nil {
 		logger.Debug("file with mechanics not found", zap.Error(err), zap.String("filename", filename))

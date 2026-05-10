@@ -101,9 +101,8 @@ func registerInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) 
 	}
 
 	reader := bytes.NewReader(body)
-	accrualAddr := fmt.Sprintf("%s/api/orders", cfg.AccrualSystemAddress)
-	registerOrderReq, err := http.Post(accrualAddr, "application/json", reader)
-	logger.Debug("accrual system address", zap.String("address", accrualAddr))
+	accrualRegisterOrderURL := fmt.Sprintf("%s/api/orders", cfg.AccrualSystemAddress)
+	registerOrderReq, err := http.Post(accrualRegisterOrderURL, "application/json", reader)
 	if err != nil {
 		logger.Debug("failed to register a new order via accrual system", zap.Error(err), zap.Int("orderNumber", orderNumber))
 		return 0, fmt.Errorf("failed to register a new order via accrual system: %w", err)
