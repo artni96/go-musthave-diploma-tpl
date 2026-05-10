@@ -100,6 +100,17 @@ func registerInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) 
 		return 0, fmt.Errorf("failed to marshal body: %w", err)
 	}
 
+	test, err := http.Get(fmt.Sprintf("%s/api/orders/%d", cfg.AccrualSystemAddress, orderNumber))
+	if err != nil {
+		logger.Debug("failed to fetch orders", zap.Error(err), zap.Int("orderNumber", orderNumber), zap.Int("status", test.StatusCode))
+	}
+	defer test.Body.Close()
+	testBody, err := io.ReadAll(test.Body)
+	if err != nil {
+		logger.Debug("failed to read body", zap.Error(err), zap.Int("orderNumber", orderNumber))
+	}
+	logger.Debug("successfully fetched orders", zap.Int("orderNumber", orderNumber), zap.String("body", string(testBody)))
+
 	reader := bytes.NewReader(body)
 	accrualRegisterOrderURL := fmt.Sprintf("%s/api/orders", cfg.AccrualSystemAddress)
 	registerOrderReq, err := http.Post(accrualRegisterOrderURL, "application/json", reader)
