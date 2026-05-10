@@ -45,7 +45,6 @@ func run(cfg *config.Config) error {
 		DB:     db,
 		Logger: appLogger,
 	}
-	app.Logger.Info("starting server", zap.String("server address", cfg.RunAddress))
 
 	userRepository := usersrepo.NewUserRepository(db, app.Logger)
 	userService := usersserv.NewUserService(userRepository, &app)
@@ -64,12 +63,12 @@ func run(cfg *config.Config) error {
 	}
 	go func() {
 		cmd := exec.CommandContext(ctx, "./cmd/accrual/accrual_linux_amd64", "-a", cfg.AccrualSystemAddress)
-		app.Logger.Info("starting accrual system server", zap.String("server address", cfg.AccrualSystemAddress))
+		app.Logger.Info("launching accrual system server", zap.String("server address", cfg.AccrualSystemAddress))
 		err = cmd.Run()
 		if err != nil {
-			app.Logger.Info("failed to start accrual system", zap.Error(err))
+			app.Logger.Info("failed to launch accrual system", zap.Error(err))
 		}
-		app.Logger.Info("accrual system successfully started")
+		app.Logger.Info("accrual system successfully launched")
 	}()
 
 	go func() {
@@ -80,16 +79,10 @@ func run(cfg *config.Config) error {
 				app.Logger.Info("failed to upload mechanics", zap.Error(err))
 			}
 		}
-		//cmd := exec.CommandContext(ctx, "./cmd/accrual/accrual_darwin_arm64", "-a", cfg.AccrualSystemAddress)
-		//
-		//err = cmd.Run()
-		//if err != nil {
-		//	app.Logger.Fatal("failed to start accrual system", zap.Error(err))
-		//}
-
+		app.Logger.Info("launching gophermart server", zap.String("server address", cfg.RunAddress))
 		err = newServer.ListenAndServe()
 		if err != nil {
-			app.Logger.Fatal("failed to start server", zap.Error(err))
+			app.Logger.Fatal("failed to launch gophermart server", zap.Error(err))
 		}
 	}()
 
