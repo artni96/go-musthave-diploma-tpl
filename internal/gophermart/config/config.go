@@ -30,7 +30,7 @@ func ParseFlags() (*Config, error) {
 
 	fs.StringVar(&config.RunAddress, "a", "localhost:8080", "run address")
 	fs.StringVar(&config.DatabaseURI, "d", "", "database URI")
-	fs.StringVar(&config.AccrualSystemAddress, "r", "localhost:8081", "accrual system address")
+	fs.StringVar(&config.AccrualSystemAddress, "r", "http://localhost:8081", "accrual system address")
 	docs.SwaggerInfo.Host = config.RunAddress
 
 	err := fs.Parse(os.Args[1:])

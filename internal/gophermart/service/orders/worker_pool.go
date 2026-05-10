@@ -101,7 +101,7 @@ func registerInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) 
 	}
 
 	reader := bytes.NewReader(body)
-	accrualAddr := fmt.Sprintf("http://%s/api/orders", cfg.AccrualSystemAddress)
+	accrualAddr := fmt.Sprintf("%s/api/orders", cfg.AccrualSystemAddress)
 	registerOrderReq, err := http.Post(accrualAddr, "application/json", reader)
 	logger.Debug("accrual system address", zap.String("address", accrualAddr))
 	if err != nil {
@@ -116,7 +116,7 @@ func registerInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) 
 
 func checkOrderStatusInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) (OrderAccrualResponse, error) {
 	var respBody OrderAccrualResponse
-	orderStatusReq, err := http.Get(fmt.Sprintf("http://%s/api/orders/%d", cfg.AccrualSystemAddress, orderNumber))
+	orderStatusReq, err := http.Get(fmt.Sprintf("%s/api/orders/%d", cfg.AccrualSystemAddress, orderNumber))
 	if err != nil {
 		logger.Debug("failed to fetch order status", zap.Error(err))
 		return respBody, err
