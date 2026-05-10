@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
@@ -61,8 +62,17 @@ func run(cfg *config.Config) error {
 		Addr:    app.Config.RunAddress,
 		Handler: mainRouter,
 	}
+	go func() {
+		cmd := exec.CommandContext(ctx, "./cmd/accrual/accrual_darwin_arm64", "-a", cfg.AccrualSystemAddress)
+		err = cmd.Run()
+		if err != nil {
+			app.Logger.Fatal("failed to start accrual system", zap.Error(err))
+		}
+		app.Logger.Info("accrual system successfully started")
+	}()
 
 	go func() {
+		time.Sleep(1 * time.Second)
 		if cfg.UploadMechanics == true {
 			err = au.UploadMechanics("data/mechanics.json", cfg.AccrualSystemAddress, app.Logger)
 			if err != nil {
@@ -70,6 +80,13 @@ func run(cfg *config.Config) error {
 			}
 			app.Logger.Info("mechanics successfully uploaded")
 		}
+		//cmd := exec.CommandContext(ctx, "./cmd/accrual/accrual_darwin_arm64", "-a", cfg.AccrualSystemAddress)
+		//
+		//err = cmd.Run()
+		//if err != nil {
+		//	app.Logger.Fatal("failed to start accrual system", zap.Error(err))
+		//}
+
 		err = newServer.ListenAndServe()
 		if err != nil {
 			app.Logger.Fatal("failed to start server", zap.Error(err))
