@@ -63,7 +63,7 @@ func run(cfg *config.Config) error {
 		Handler: mainRouter,
 	}
 	go func() {
-		cmd := exec.CommandContext(ctx, "./cmd/accrual/accrual_darwin_arm64", "-a", cfg.AccrualSystemAddress)
+		cmd := exec.CommandContext(ctx, "./cmd/accrual/accrual_linux_amd64", "-a", cfg.AccrualSystemAddress)
 		err = cmd.Run()
 		if err != nil {
 			app.Logger.Info("failed to start accrual system", zap.Error(err))
