@@ -102,7 +102,7 @@ func (r *OrderRepository) Update(ctx context.Context, data model.OrderUpdateRequ
 		return fmt.Errorf("failed to update order: %w", ErrOrderNotFound)
 	}
 
-	insertTransactionQuery := `INSERT INTO withdrawals (user_id, "order", sum, processed_at) VALUES ($1, $2, $3, $4)`
+	insertTransactionQuery := `INSERT INTO transactions (user_id, "order", sum, processed_at) VALUES ($1, $2, $3, $4)`
 	res, err = tx.ExecContext(ctx, insertTransactionQuery, data.UserID, data.Number, data.Accrual, time.Now().Format(time.RFC3339))
 	if err != nil {
 		r.logger.Debug("failed to insert transaction", zap.Error(err), zap.String("Order number", data.Number), zap.String("user id", data.UserID))
