@@ -72,12 +72,12 @@ func run(cfg *config.Config) error {
 
 	go func() {
 		time.Sleep(1 * time.Second)
-		if cfg.UploadMechanics == true {
-			err = au.UploadMechanics("data/mechanics.json", cfg.AccrualSystemAddress, app.Logger)
-			if err != nil {
-				app.Logger.Info("failed to upload mechanics", zap.Error(err))
-			}
+
+		err = au.UploadMechanics("data/mechanics.json", cfg.AccrualSystemAddress, app.Logger)
+		if err != nil {
+			app.Logger.Info("failed to upload mechanics", zap.Error(err))
 		}
+
 		app.Logger.Info("launching gophermart server", zap.String("server address", cfg.RunAddress))
 		err = newServer.ListenAndServe()
 		if err != nil {
