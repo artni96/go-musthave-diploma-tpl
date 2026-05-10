@@ -1,0 +1,8 @@
+services:
+  accrual-system:
+    image: ubuntu:22.04
+    command: bash -c "ls -la /app/cmd/accrual/ && /app/cmd/accrual/accrual_linux_amd64"
+    volumes:
+      - .:/app
+
+    working_dir: /app

@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	au "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/acrrual_utils"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
@@ -66,6 +65,9 @@ func run(cfg *config.Config) error {
 		Handler: mainRouter,
 	}
 
+	shutdownCtx, shutdownCancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer shutdownCancel()
+
 	go func() {
 		if cfg.UploadMechanics == true {
 			err = au.UploadMechanics("data/mechanics.json", cfg.AccrualSystemAddress, app.Logger)
@@ -89,9 +91,6 @@ func run(cfg *config.Config) error {
 	signal.Notify(shutdownChan, syscall.SIGINT, syscall.SIGTERM)
 	<-shutdownChan
 	app.Logger.Info("shutting app down")
-
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer shutdownCancel()
 
 	if err = db.Close(); err != nil {
 		app.Logger.Info("failed to close database", zap.Error(err))

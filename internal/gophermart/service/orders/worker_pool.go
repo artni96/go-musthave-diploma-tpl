@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/acrrual_utils"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
@@ -30,6 +31,7 @@ func WorkersPool(ctx *context.Context, orderService OrderServiceInterface, order
 	var wg sync.WaitGroup
 
 	for i := 0; i < runtime.NumCPU(); i++ {
+
 		app.Logger.Debug("worker waiting for task", zap.Int("Worker number", i))
 		wg.Go(func() { orderWorker(ctx, orderService, orderQueue, app) })
 	}
@@ -39,73 +41,79 @@ func WorkersPool(ctx *context.Context, orderService OrderServiceInterface, order
 func orderWorker(ctx *context.Context, service OrderServiceInterface, orderQueue <-chan model.OrderQueue, app *config.App) {
 
 	for order := range orderQueue {
-		orderNumber := order.Number
-		userID := order.UserID
 
-		app.Logger.Debug("processing order", zap.Int("orderNumber", orderNumber))
-
-		orderData, err := checkOrderStatusInAccrual(app.Config, orderNumber, app.Logger)
-		if err != nil {
-			if errors.Is(err, ErrOrderNotFound) {
-				app.Logger.Debug("order has not been registered", zap.Int("OrderNumber", orderNumber))
-				statusCode, err := registerInAccrual(app.Config, orderNumber, app.Logger)
-				if err != nil {
-					err = service.UpdateStatus(*ctx, model.OrderStatusUpdateRequest{
-						Number: strconv.Itoa(orderNumber),
-						Status: "INVALID",
-					})
+		timeOutCtx, cancel := context.WithTimeout(*ctx, time.Second*10)
+		select {
+		case <-timeOutCtx.Done():
+			app.Logger.Info("time is out", zap.Int("order number", order.Number), zap.Error(timeOutCtx.Err()))
+			cancel()
+			return
+		default:
+			orderNumber := order.Number
+			userID := order.UserID
+			app.Logger.Debug("processing order", zap.Int("orderNumber", orderNumber))
+			orderData, err := checkOrderStatusInAccrual(timeOutCtx, app.Config, orderNumber, app.Logger)
+			if err != nil {
+				if errors.Is(err, ErrOrderNotFound) {
+					app.Logger.Debug("order has not been registered", zap.Int("OrderNumber", orderNumber))
+					statusCode, err := registerInAccrual(timeOutCtx, app.Config, orderNumber, app.Logger)
 					if err != nil {
-						app.Logger.Debug("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber), zap.String("status to change", "INVALID"))
-						return
-					}
-					app.Logger.Debug("failed to register in accrual", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
-					return
-				}
-
-				if statusCode == http.StatusAccepted {
-					app.Logger.Debug("successfully registered in accrual system", zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
-					err = service.UpdateStatus(*ctx, model.OrderStatusUpdateRequest{
-						Number: strconv.Itoa(orderNumber),
-						Status: "PROCESSING",
-					})
-
-					if err != nil {
-						service.UpdateStatus(*ctx, model.OrderStatusUpdateRequest{
+						err = service.UpdateStatus(*ctx, model.OrderStatusUpdateRequest{
 							Number: strconv.Itoa(orderNumber),
 							Status: "INVALID",
 						})
-						app.Logger.Debug("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber), zap.String("status to change", "INVALID"))
+						if err != nil {
+							app.Logger.Debug("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber), zap.String("status to change", "INVALID"))
+							return
+						}
+						app.Logger.Debug("failed to register in accrual", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
 						return
 					}
-					orderData, err = checkOrderStatusInAccrual(app.Config, orderNumber, app.Logger)
-					if err != nil {
-						app.Logger.Debug("failed to get order data", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
-						return
+
+					if statusCode == http.StatusAccepted {
+						app.Logger.Debug("successfully registered in accrual system", zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
+						err = service.UpdateStatus(*ctx, model.OrderStatusUpdateRequest{
+							Number: strconv.Itoa(orderNumber),
+							Status: "PROCESSING",
+						})
+
+						if err != nil {
+							service.UpdateStatus(*ctx, model.OrderStatusUpdateRequest{
+								Number: strconv.Itoa(orderNumber),
+								Status: "INVALID",
+							})
+							app.Logger.Debug("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber), zap.String("status to change", "INVALID"))
+							return
+						}
+						orderData, err = checkOrderStatusInAccrual(timeOutCtx, app.Config, orderNumber, app.Logger)
+						if err != nil {
+							app.Logger.Debug("failed to get order data", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
+							return
+						}
 					}
+				} else {
+					app.Logger.Debug("failed to get order data", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
+					return
 				}
-			} else {
-				app.Logger.Debug("failed to get order data", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
+			}
+
+			app.Logger.Debug("order data", zap.String("order number", orderData.Order), zap.String("status", orderData.Status), zap.Float64("accrual", orderData.Accrual))
+			err = service.Update(*ctx, model.OrderUpdateRequest{
+				Number:  orderData.Order,
+				Status:  orderData.Status,
+				Accrual: int(orderData.Accrual * 100),
+				UserID:  userID,
+			})
+			if err != nil {
+				app.Logger.Debug("failed to update order", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
 				return
 			}
+			app.Logger.Debug("order successfully handled", zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber), zap.String("status", "PROCESSING"))
 		}
-
-		app.Logger.Debug("order data", zap.String("order number", orderData.Order), zap.String("status", orderData.Status), zap.Float64("accrual", orderData.Accrual))
-		err = service.Update(*ctx, model.OrderUpdateRequest{
-			Number:  orderData.Order,
-			Status:  orderData.Status,
-			Accrual: int(orderData.Accrual * 100),
-			UserID:  userID,
-		})
-		if err != nil {
-			app.Logger.Debug("failed to update order", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
-			return
-		}
-		app.Logger.Debug("order successfully handled", zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber), zap.String("status", "PROCESSING"))
 	}
-
 }
 
-func registerInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) (int, error) {
+func registerInAccrual(ctx context.Context, cfg *config.Config, orderNumber int, logger *zap.Logger) (int, error) {
 	bill := acrrual_utils.GenerateBill(strconv.Itoa(orderNumber), logger)
 	body, err := json.Marshal(bill)
 	if err != nil {
@@ -115,20 +123,23 @@ func registerInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) 
 
 	reader := bytes.NewReader(body)
 	accrualRegisterOrderURL := fmt.Sprintf("%s/api/orders", cfg.AccrualSystemAddress)
-	registerOrderReq, err := http.Post(accrualRegisterOrderURL, "application/json", reader)
+	//registerOrderReq, err := http.Post(accrualRegisterOrderURL, "application/json", reader)
+	registerOrderReq, err := http.NewRequestWithContext(ctx, http.MethodPost, accrualRegisterOrderURL, reader)
 	if err != nil {
 		logger.Debug("failed to register a new order via accrual system", zap.Error(err), zap.Int("orderNumber", orderNumber))
 		return 0, fmt.Errorf("failed to register a new order via accrual system: %w", err)
 	}
 	logger.Debug("successful post request to `/api/orders`", zap.Int("orderNumber", orderNumber))
 	defer registerOrderReq.Body.Close()
-	logger.Debug("order successfully registered in accrual system", zap.Int("orderNumber", orderNumber), zap.String("goods", fmt.Sprintf("%+v", bill.Goods)), zap.Int("status code", registerOrderReq.StatusCode))
-	return registerOrderReq.StatusCode, nil
+	logger.Debug("order successfully registered in accrual system", zap.Int("orderNumber", orderNumber), zap.String("goods", fmt.Sprintf("%+v", bill.Goods)), zap.Int("status code", registerOrderReq.Response.StatusCode))
+	return registerOrderReq.Response.StatusCode, nil
 }
 
-func checkOrderStatusInAccrual(cfg *config.Config, orderNumber int, logger *zap.Logger) (OrderAccrualResponse, error) {
+func checkOrderStatusInAccrual(ctx context.Context, cfg *config.Config, orderNumber int, logger *zap.Logger) (OrderAccrualResponse, error) {
 	var respBody OrderAccrualResponse
-	orderStatusReq, err := http.Get(fmt.Sprintf("%s/api/orders/%d", cfg.AccrualSystemAddress, orderNumber))
+	//orderStatusReq, err := http.Get(fmt.Sprintf("%s/api/orders/%d", cfg.AccrualSystemAddress, orderNumber))
+	accrualOrderStatusURL := fmt.Sprintf("%s/api/orders/%d", cfg.AccrualSystemAddress, orderNumber)
+	orderStatusReq, err := http.NewRequestWithContext(ctx, http.MethodGet, accrualOrderStatusURL, nil)
 	if err != nil {
 		logger.Debug("failed to fetch order status", zap.Error(err))
 		return respBody, err
