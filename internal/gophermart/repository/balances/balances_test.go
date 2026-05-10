@@ -167,7 +167,7 @@ func TestWithdraw(t *testing.T) {
 				Sum         int    `db:"sum"`
 				ProcessedAt string `db:"processed_at"`
 			}
-			transactionSelectQuery := `SELECT sum, processed_at FROM transactions WHERE user_id = $1 and "order" = $2`
+			transactionSelectQuery := `SELECT sum, processed_at FROM withdrawals WHERE user_id = $1 and "order" = $2`
 			var transaction transactionRes
 			err = db.GetContext(*ctx, &transaction, transactionSelectQuery, tt.req.data.UserID, tt.req.data.Order)
 			if err != nil {

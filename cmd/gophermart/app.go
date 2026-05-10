@@ -17,9 +17,11 @@ import (
 	balancesrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/balances"
 	ordersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/orders"
 	usersrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/users"
+	withdrawalsrepo "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/repository/withdrawals"
 	balancesserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/balances"
 	ordersserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/orders"
 	usersserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/users"
+	withdrawalsserv "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/service/withdrawals"
 	"go.uber.org/zap"
 
 	_ "github.com/artni96/go-musthave-diploma-tpl/api/docs"
@@ -54,30 +56,24 @@ func run(cfg *config.Config) error {
 
 	balanceRepository := balancesrepo.NewBalanceRepository(db, app.Logger)
 	balanceService := balancesserv.NewBalanceService(balanceRepository, &app)
-	mainRouter := routers.InitRouter(&ctx, &app, userRepository, userService, orderRepository, orderService, ordersQueue, balanceRepository, balanceService)
+
+	withdrawalRepository := withdrawalsrepo.NewWithdrawalRepository(db, app.Logger)
+	withdrawalService := withdrawalsserv.NewWithdrawalService(withdrawalRepository, &app)
+	mainRouter := routers.InitRouter(&ctx, &app, userRepository, userService, orderRepository, orderService, ordersQueue, balanceRepository, balanceService, withdrawalRepository, withdrawalService)
 
 	newServer := &http.Server{
 		Addr:    app.Config.RunAddress,
 		Handler: mainRouter,
 	}
-	//go func() {
-	//	cmd := exec.CommandContext(ctx, "./cmd/accrual/accrual_linux_amd64", "-a", cfg.AccrualSystemAddress)
-	//	app.Logger.Info("launching accrual system server", zap.String("server address", cfg.AccrualSystemAddress))
-	//	err = cmd.Run()
-	//	if err != nil {
-	//		app.Logger.Info("failed to launch accrual system", zap.Error(err))
-	//	}
-	//	app.Logger.Info("accrual system successfully launched")
-	//}()
 
 	go func() {
 		time.Sleep(1 * time.Second)
-
-		err = au.UploadMechanics("data/mechanics.json", cfg.AccrualSystemAddress, app.Logger)
-		if err != nil {
-			app.Logger.Info("failed to upload mechanics", zap.Error(err))
+		if cfg.UploadMechanics == true {
+			err = au.UploadMechanics("data/mechanics.json", cfg.AccrualSystemAddress, app.Logger)
+			if err != nil {
+				app.Logger.Info("failed to upload mechanics", zap.Error(err))
+			}
 		}
-
 		app.Logger.Info("launching gophermart server", zap.String("server address", cfg.RunAddress))
 		err = newServer.ListenAndServe()
 		if err != nil {
