@@ -64,6 +64,7 @@ func run(cfg *config.Config) error {
 	}
 	go func() {
 		cmd := exec.CommandContext(ctx, "./cmd/accrual/accrual_linux_amd64", "-a", cfg.AccrualSystemAddress)
+		app.Logger.Info("starting accrual system server", zap.String("server address", cfg.AccrualSystemAddress))
 		err = cmd.Run()
 		if err != nil {
 			app.Logger.Info("failed to start accrual system", zap.Error(err))
