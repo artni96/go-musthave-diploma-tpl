@@ -66,7 +66,7 @@ func run(cfg *config.Config) error {
 		cmd := exec.CommandContext(ctx, "./cmd/accrual/accrual_darwin_arm64", "-a", cfg.AccrualSystemAddress)
 		err = cmd.Run()
 		if err != nil {
-			app.Logger.Fatal("failed to start accrual system", zap.Error(err))
+			app.Logger.Info("failed to start accrual system", zap.Error(err))
 		}
 		app.Logger.Info("accrual system successfully started")
 	}()
@@ -78,7 +78,6 @@ func run(cfg *config.Config) error {
 			if err != nil {
 				app.Logger.Info("failed to upload mechanics", zap.Error(err))
 			}
-			app.Logger.Info("mechanics successfully uploaded")
 		}
 		//cmd := exec.CommandContext(ctx, "./cmd/accrual/accrual_darwin_arm64", "-a", cfg.AccrualSystemAddress)
 		//

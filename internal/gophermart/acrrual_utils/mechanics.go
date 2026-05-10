@@ -66,8 +66,9 @@ func UploadMechanics(filename string, accrualAddr string, logger *zap.Logger) er
 		} else if res.StatusCode == http.StatusConflict {
 			logger.Debug("mechanic already been uploaded", zap.String("mechanic match", mechanic.Match))
 		} else {
-			logger.Debug("failed to upload mechanics", zap.Error(err), zap.String("mechanic match", mechanic.Match), zap.String("response", res.Status))
+			logger.Debug("failed to upload mechanic", zap.Error(err), zap.String("mechanic match", mechanic.Match), zap.String("response", res.Status))
 		}
 	}
+	logger.Info("mechanics successfully uploaded")
 	return nil
 }
