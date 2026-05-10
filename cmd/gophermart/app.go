@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
@@ -61,15 +60,15 @@ func run(cfg *config.Config) error {
 		Addr:    app.Config.RunAddress,
 		Handler: mainRouter,
 	}
-	go func() {
-		cmd := exec.CommandContext(ctx, "./cmd/accrual/accrual_linux_amd64", "-a", cfg.AccrualSystemAddress)
-		app.Logger.Info("launching accrual system server", zap.String("server address", cfg.AccrualSystemAddress))
-		err = cmd.Run()
-		if err != nil {
-			app.Logger.Info("failed to launch accrual system", zap.Error(err))
-		}
-		app.Logger.Info("accrual system successfully launched")
-	}()
+	//go func() {
+	//	cmd := exec.CommandContext(ctx, "./cmd/accrual/accrual_linux_amd64", "-a", cfg.AccrualSystemAddress)
+	//	app.Logger.Info("launching accrual system server", zap.String("server address", cfg.AccrualSystemAddress))
+	//	err = cmd.Run()
+	//	if err != nil {
+	//		app.Logger.Info("failed to launch accrual system", zap.Error(err))
+	//	}
+	//	app.Logger.Info("accrual system successfully launched")
+	//}()
 
 	go func() {
 		time.Sleep(1 * time.Second)

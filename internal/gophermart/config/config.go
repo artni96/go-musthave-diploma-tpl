@@ -49,7 +49,7 @@ func ParseFlags() (*Config, error) {
 		config.DatabaseURI = envDatabaseURI
 	}
 
-	envAccrualSystemAddress, ok := os.LookupEnv("ACCRUAL_ADDRESS")
+	envAccrualSystemAddress, ok := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS")
 	if ok {
 		config.AccrualSystemAddress = envAccrualSystemAddress
 	}
