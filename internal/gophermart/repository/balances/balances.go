@@ -31,7 +31,7 @@ func NewBalanceRepository(db *sqlx.DB, logger *zap.Logger) *BalanceRepository {
 
 func (r *BalanceRepository) Get(ctx *context.Context, userID string) (model.BalanceResponse, error) {
 	var userBalance model.BalanceResponse
-	selectQuery := "SELECT (current/100) as current, (withdrawn/100) as withdrawn FROM balance WHERE user_id = $1"
+	selectQuery := "SELECT (current::numeric/100) as current, (withdrawn::numeric/100) as withdrawn FROM balance WHERE user_id = $1"
 	err := r.db.GetContext(*ctx, &userBalance, selectQuery, userID)
 	if err != nil {
 		r.logger.Debug("failed to get balances", zap.String("user_id", userID), zap.Error(err))
