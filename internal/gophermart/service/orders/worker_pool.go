@@ -121,18 +121,23 @@ func registerInAccrual(ctx context.Context, cfg *config.Config, orderNumber int,
 		return 0, fmt.Errorf("failed to marshal body: %w", err)
 	}
 
-	reader := bytes.NewReader(body)
 	accrualRegisterOrderURL := fmt.Sprintf("%s/api/orders", cfg.AccrualSystemAddress)
 	//registerOrderReq, err := http.Post(accrualRegisterOrderURL, "application/json", reader)
-	registerOrderReq, err := http.NewRequestWithContext(ctx, http.MethodPost, accrualRegisterOrderURL, reader)
+	registerOrderReq, err := http.NewRequestWithContext(ctx, http.MethodPost, accrualRegisterOrderURL, bytes.NewReader(body))
+	if err != nil {
+		logger.Debug("failed to register a new order via accrual system", zap.Error(err), zap.Int("orderNumber", orderNumber))
+		return 0, fmt.Errorf("failed to register a new order via accrual system: %w", err)
+	}
+	registerOrderReq.Header.Add("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(registerOrderReq)
 	if err != nil {
 		logger.Debug("failed to register a new order via accrual system", zap.Error(err), zap.Int("orderNumber", orderNumber))
 		return 0, fmt.Errorf("failed to register a new order via accrual system: %w", err)
 	}
 	logger.Debug("successful post request to `/api/orders`", zap.Int("orderNumber", orderNumber))
-	defer registerOrderReq.Body.Close()
-	logger.Debug("order successfully registered in accrual system", zap.Int("orderNumber", orderNumber), zap.String("goods", fmt.Sprintf("%+v", bill.Goods)), zap.Int("status code", registerOrderReq.Response.StatusCode))
-	return registerOrderReq.Response.StatusCode, nil
+	defer resp.Body.Close()
+	logger.Debug("order successfully registered in accrual system", zap.Int("orderNumber", orderNumber), zap.String("goods", fmt.Sprintf("%+v", bill.Goods)), zap.Int("status ode", resp.StatusCode))
+	return resp.StatusCode, nil
 }
 
 func checkOrderStatusInAccrual(ctx context.Context, cfg *config.Config, orderNumber int, logger *zap.Logger) (OrderAccrualResponse, error) {
@@ -144,13 +149,23 @@ func checkOrderStatusInAccrual(ctx context.Context, cfg *config.Config, orderNum
 		logger.Debug("failed to fetch order status", zap.Error(err))
 		return respBody, err
 	}
-	defer orderStatusReq.Body.Close()
-	respBodyBytes, err := io.ReadAll(orderStatusReq.Body)
+
+	resp, err := http.DefaultClient.Do(orderStatusReq)
+	if err != nil {
+		logger.Debug("failed to fetch order status", zap.Error(err))
+		return respBody, err
+	}
+
+	respBodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logger.Debug("failed to read order status", zap.Error(err))
 		return respBody, err
 	}
+	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNoContent {
+		return respBody, ErrOrderNotFound
+	}
 	err = json.Unmarshal(respBodyBytes, &respBody)
 	if err != nil {
 		logger.Debug("failed to read order status", zap.Error(err))
