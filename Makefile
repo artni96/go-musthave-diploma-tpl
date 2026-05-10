@@ -29,3 +29,13 @@ test:
 .PHONY: test-cover
 test-cover:
 	GOARCH=arm64 go test ./... -cover
+
+##up-test-db: initialize db for unit tests
+.PHONY: up-test-db
+up-test-db:
+	docker compose -f docker-compose.test.yml up -d --build
+
+##down-test-db: downsize db for unit tests
+.PHONY: down-test-db
+down-test-db:
+	docker compose -f docker-compose.test.yml down

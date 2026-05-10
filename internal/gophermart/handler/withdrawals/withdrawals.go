@@ -35,6 +35,17 @@ func NewWithdrawalHandler(ctx *context.Context, app *config.App, repository tran
 	}
 }
 
+// GetList godoc
+// @Summary Getting user withdrawals list (authorization required)
+// @Description list ordered by processed_at desc
+// @Tags withdrawals
+// @Accept json
+// @Produce json
+// @Success      200 {array} model.WithdrawalResponse
+// @Success      204
+// @Failure      401
+// @Failure      500
+// @Router       /api/user/withdrawals [get]
 func (h *WithdrawalHandler) GetList(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
