@@ -2,8 +2,10 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/artni96/go-musthave-diploma-tpl/api/docs"
@@ -18,7 +20,7 @@ type Config struct {
 	DatabaseURI          string        `env:"DATABASE_URI"`
 	AccrualSystemAddress string        `env:"ACCRUAL_SYSTEM_ADDRESS"`
 	SecretKey            string        `env:"SECRET_KEY"`
-	TokenExp             time.Duration `env:"TOKEN_EXPIRATION"`
+	TokenExp             time.Duration `env:"TOKEN_EXP"`
 	Debug                bool          `env:"DEBUG"`
 	UploadMechanics      bool          `env:"UPLOAD_MECHANICS"`
 }
@@ -54,28 +56,45 @@ func ParseFlags() (*Config, error) {
 		config.AccrualSystemAddress = envAccrualSystemAddress
 	}
 	config.SecretKey = "secret"
-	config.Debug = true
+	config.Debug = false
 	config.TokenExp = time.Minute * 5
 	config.UploadMechanics = false
 
 	err = godotenv.Load(".env")
 	if err == nil {
-		envSecretKey, ok := os.LookupEnv("SECRET_KEY")
+
+		envFileDBHost, envFileDBHostOk := os.LookupEnv("DB_HOST")
+		envFileDBPort, envFileDBPortOk := os.LookupEnv("INNER_DB_PORT")
+		envFileDBUser, envFileDBUserOk := os.LookupEnv("DB_USER")
+		envFileDBPass, envFileDBPassOk := os.LookupEnv("DB_PASSWORD")
+		enfFileDBName, enfFileDBNameOk := os.LookupEnv("DB_NAME")
+
+		if envFileDBHostOk && envFileDBPortOk && envFileDBUserOk && envFileDBPassOk && enfFileDBNameOk {
+			envFileDBDSN := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", envFileDBHost, envFileDBPort, envFileDBUser, envFileDBPass, enfFileDBName)
+			config.DatabaseURI = envFileDBDSN
+		}
+		envFileAccrualSystemAddress, ok := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS")
 		if ok {
-			config.SecretKey = envSecretKey
+			config.AccrualSystemAddress = envFileAccrualSystemAddress
 		}
-		envTokenExp, ok := os.LookupEnv("TOKEN_EXPIRATION")
+
+		envFileSecretKey, ok := os.LookupEnv("SECRET_KEY")
 		if ok {
-			config.TokenExp, err = time.ParseDuration(envTokenExp)
+			config.SecretKey = envFileSecretKey
 		}
-		envDebug, ok := os.LookupEnv("DEBUG")
-		if ok && envDebug == "true" {
-			config.Debug = true
+		envFileTokenExp, ok := os.LookupEnv("TOKEN_EXP")
+		if ok {
+			config.TokenExp, err = time.ParseDuration(envFileTokenExp)
 		}
-		envUploadMechanics, ok := os.LookupEnv("UPLOAD_MECHANICS")
-		if ok && envUploadMechanics == "true" {
+		envFileUploadMechanics, ok := os.LookupEnv("UPLOAD_MECHANICS")
+		if ok && strings.ToLower(envFileUploadMechanics) == "true" {
 			config.UploadMechanics = true
 		}
+		envFileDebug, ok := os.LookupEnv("DEBUG")
+		if ok && strings.ToLower(envFileDebug) == "true" {
+			config.Debug = true
+		}
+
 	} else {
 		log.Println(".env file not found, keep working with default values")
 	}

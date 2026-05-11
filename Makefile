@@ -9,7 +9,7 @@ help:
 	@echo "Commands list:"
 	@sed -n "s/^##//p" $(MAKEFILE_LIST) | column -t -s ":" | sed -e "s/^/ /"
 
-##dev: build app in dev mode
+##dev: launching gophermart-app in dev mode (with debug logs)
 .PHONY: dev
 dev:
 	GOARCH=arm64 GOOS=darwin go build -o ${build_dir}/gophermart-darwin ${build_dir}
@@ -39,3 +39,13 @@ up-test-db:
 .PHONY: down-test-db
 down-test-db:
 	docker compose -f docker-compose.test.yml down
+
+##run: launching the project - accrual system, gophermart-db, gophermart-app
+.PHONY: run
+run:
+	docker compose -f docker-compose.yml up -d --build
+
+##down: shutting the project down - accrual system, gophermart-db, gophermart-app (after make run)
+.PHONY: down
+down:
+	docker compose -f docker-compose.yml down

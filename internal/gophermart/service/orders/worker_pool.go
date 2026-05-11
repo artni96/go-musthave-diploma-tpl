@@ -179,5 +179,6 @@ func checkOrderStatusInAccrual(ctx context.Context, cfg *config.Config, orderNum
 		logger.Debug("failed to read order status", zap.Error(err))
 		return respBody, ErrOrderNotFound
 	}
+	logger.Debug("successfully fetched order status from accrual system", zap.Int("orderNumber", orderNumber))
 	return respBody, nil
 }

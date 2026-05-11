@@ -32,5 +32,6 @@ func (r *WithdrawalRepository) GetList(ctx context.Context, userID string) ([]mo
 		r.logger.Debug("failed to get user withdrawals", zap.Error(err), zap.String("user_id", userID))
 		return nil, err
 	}
+	r.logger.Debug("got user withdrawals", zap.String("userID", userID))
 	return result, nil
 }

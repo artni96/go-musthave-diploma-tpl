@@ -31,14 +31,14 @@ func run(cfg *config.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	db, err := config.InitDBConnection(ctx, cfg, true)
-	if err != nil {
-		return err
-	}
-
 	appLogger, err := logger.InitLogger(cfg.Debug)
 	if err != nil {
 		log.Fatal("failed to initialize logger")
+	}
+
+	db, err := config.InitDBConnection(ctx, cfg, true, appLogger)
+	if err != nil {
+		return err
 	}
 
 	app := config.App{
@@ -96,7 +96,7 @@ func run(cfg *config.Config) error {
 	go func() {
 		deadline, _ := gsCtx.Deadline()
 		for i := deadline.Second() - time.Now().Second(); i > 0; i-- {
-			app.Logger.Info(fmt.Sprintf("app shutdown in %d seconds", i))
+			app.Logger.Info(fmt.Sprintf("app shutdown in %d sec", i))
 			time.Sleep(1 * time.Second)
 		}
 	}()

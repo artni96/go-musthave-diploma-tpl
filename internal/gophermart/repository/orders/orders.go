@@ -126,18 +126,18 @@ func (r *OrderRepository) Update(ctx context.Context, data model.OrderUpdateRequ
 			insertBalanceQuery := "INSERT INTO balance (user_id, current, withdrawn) VALUES ($1, $2, $3)"
 			_, err = tx.ExecContext(ctx, insertBalanceQuery, data.UserID, data.Accrual, 0)
 			if err != nil {
-				r.logger.Info("failed to create user balance at order update", zap.Error(err), zap.String("Order number", data.Number), zap.String("User ID", data.UserID))
+				r.logger.Debug("failed to create user balance at order update", zap.Error(err), zap.String("Order number", data.Number), zap.String("User ID", data.UserID))
 				return fmt.Errorf("failed to create user balance: %w", err)
 			}
 		} else {
-			r.logger.Info("failed to get user balance at order update", zap.Error(err), zap.String("Order number", data.Number), zap.String("User ID", data.UserID))
+			r.logger.Debug("failed to get user balance at order update", zap.Error(err), zap.String("Order number", data.Number), zap.String("User ID", data.UserID))
 			return fmt.Errorf("failed to get user balance: %w", err)
 		}
 	} else {
 		updateBalanceQuery := "UPDATE balance SET current = $1 WHERE user_id = $2"
 		_, err = tx.ExecContext(ctx, updateBalanceQuery, data.Accrual+balance.Current, data.UserID)
 		if err != nil {
-			r.logger.Info("failed to update user balance at order update", zap.Error(err), zap.String("Order number", data.Number), zap.String("User ID", data.UserID))
+			r.logger.Debug("failed to update user balance at order update", zap.Error(err), zap.String("Order number", data.Number), zap.String("User ID", data.UserID))
 			return fmt.Errorf("failed to update user balance: %w", err)
 		}
 	}

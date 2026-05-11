@@ -37,6 +37,7 @@ func (r *BalanceRepository) Get(ctx *context.Context, userID string) (model.Bala
 		r.logger.Debug("failed to get balances", zap.String("user_id", userID), zap.Error(err))
 		return userBalance, fmt.Errorf("failed to get user balances: %w", err)
 	}
+	r.logger.Debug("got user balance", zap.String("user_id", userID))
 	return userBalance, nil
 }
 
@@ -44,6 +45,7 @@ func (r *BalanceRepository) Withdraw(ctx *context.Context, data model.Transactio
 
 	tx, err := r.db.Beginx()
 	if err != nil {
+		r.logger.Debug("failure to begin transaction", zap.Error(err))
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
@@ -52,6 +54,7 @@ func (r *BalanceRepository) Withdraw(ctx *context.Context, data model.Transactio
 
 	err = tx.GetContext(*ctx, &currentBalance, currentBalanceQuery, data.UserID)
 	if err != nil {
+		r.logger.Debug("failed to get current user balance", zap.String("user_id", data.UserID), zap.Error(err))
 		return fmt.Errorf("failed to get current user balance: %w", err)
 	}
 
@@ -63,7 +66,7 @@ func (r *BalanceRepository) Withdraw(ctx *context.Context, data model.Transactio
 	insertTransactionRequest := `INSERT INTO transactions (user_id, "order", sum, processed_at) VALUES ($1, $2, $3, $4)`
 	_, err = tx.ExecContext(*ctx, insertTransactionRequest, data.UserID, data.Order, -data.Sum, data.ProcessedAt)
 	if err != nil {
-		r.logger.Debug("failed to create new transaction error", zap.Error(err), zap.String("user_id", data.UserID), zap.String("order", data.Order), zap.Float64("sum", data.Sum))
+		r.logger.Debug("failed to create new transaction error", zap.Error(err), zap.String("user_id", data.UserID), zap.String("order", data.Order))
 		return fmt.Errorf("failed to create new transaction error: %w", err)
 	}
 
@@ -74,7 +77,9 @@ func (r *BalanceRepository) Withdraw(ctx *context.Context, data model.Transactio
 		return fmt.Errorf("failed to update user balance: %w", err)
 	}
 	if err = tx.Commit(); err != nil {
+		r.logger.Debug("failed to commit transaction", zap.Error(err), zap.String("user_id", data.UserID), zap.String("order", data.Order))
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
+	r.logger.Debug("successfully committed withdrawal", zap.String("user_id", data.UserID), zap.String("order", data.Order))
 	return nil
 }
