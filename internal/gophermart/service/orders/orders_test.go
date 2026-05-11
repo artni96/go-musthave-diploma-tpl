@@ -17,7 +17,6 @@ import (
 )
 
 func initService() (*OrderService, context.Context, string, string) {
-	//testDBDSN := "host=localhost port=5432 user=test password=test dbname=gophermart_test sslmode=disable"
 	testDBDSN := config.TestsDBDSN()
 	cfg := config.Config{
 		DatabaseURI: testDBDSN,
@@ -25,7 +24,7 @@ func initService() (*OrderService, context.Context, string, string) {
 	ctx := context.Background()
 
 	logger := zap.NewNop()
-	db, err := config.InitDBConnection(ctx, &cfg, false)
+	db, err := config.InitDBConnection(ctx, &cfg, false, logger)
 	if err != nil {
 		log.Fatal(err)
 	}

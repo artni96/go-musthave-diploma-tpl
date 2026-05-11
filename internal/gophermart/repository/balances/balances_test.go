@@ -22,7 +22,7 @@ func testDBConn(ctx context.Context) (*sqlx.DB, error) {
 	cfg := config.Config{
 		DatabaseURI: testDBDSN,
 	}
-	db, err := config.InitDBConnection(ctx, &cfg, false)
+	db, err := config.InitDBConnection(ctx, &cfg, false, zap.NewNop())
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func initRepository() (*BalanceRepository, *context.Context, string, string) {
 	ctx := context.Background()
 
 	logger := zap.NewNop()
-	db, err := config.InitDBConnection(ctx, &cfg, false)
+	db, err := config.InitDBConnection(ctx, &cfg, false, logger)
 	if err != nil {
 		log.Fatal(err)
 	}

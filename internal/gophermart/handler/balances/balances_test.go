@@ -31,7 +31,7 @@ func initConfig() (*context.Context, *sqlx.DB, *config.Config) {
 	}
 	ctx := context.Background()
 
-	db, err := config.InitDBConnection(ctx, &cfg, false)
+	db, err := config.InitDBConnection(ctx, &cfg, false, zap.NewNop())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func initUser(login string, password string) string {
 	}
 	ctx := context.Background()
 
-	db, err := config.InitDBConnection(ctx, &cfg, false)
+	db, err := config.InitDBConnection(ctx, &cfg, false, zap.NewNop())
 	if err != nil {
 		log.Fatal(err)
 	}

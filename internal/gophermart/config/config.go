@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/artni96/go-musthave-diploma-tpl/api/docs"
-	_ "github.com/artni96/go-musthave-diploma-tpl/api/docs"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"

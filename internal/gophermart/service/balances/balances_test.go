@@ -28,7 +28,7 @@ func initService(t *testing.T) (*BalanceService, *mocks.MockBalanceRepositoryInt
 	ctx := context.Background()
 
 	logger := zap.NewNop()
-	db, err := config.InitDBConnection(ctx, &cfg, false)
+	db, err := config.InitDBConnection(ctx, &cfg, false, logger)
 	if err != nil {
 		log.Fatal(err)
 	}

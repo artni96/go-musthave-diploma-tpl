@@ -23,7 +23,7 @@ func initRepository() (*UserRepository, *context.Context) {
 	ctx := context.Background()
 
 	logger := zap.NewNop()
-	db, err := config2.InitDBConnection(ctx, &cfg, false)
+	db, err := config2.InitDBConnection(ctx, &cfg, false, logger)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -2,15 +2,11 @@ package acrrual_utils
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/rand"
 
 	"go.uber.org/zap"
 )
-
-var ErrGoodsFileNotFound = errors.New("file with goods not found")
-var ErrFailedToReadGoodsFile = errors.New("failed to read file with goods")
 
 type Bill struct {
 	OrderNumber string `json:"order"`

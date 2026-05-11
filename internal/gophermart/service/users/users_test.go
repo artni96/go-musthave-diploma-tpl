@@ -25,7 +25,7 @@ func initService() (*UserService, context.Context, *config.Config) {
 	ctx := context.Background()
 
 	logger := zap.NewNop()
-	db, err := config.InitDBConnection(ctx, &cfg, false)
+	db, err := config.InitDBConnection(ctx, &cfg, false, logger)
 	if err != nil {
 		log.Fatal(err)
 	}
