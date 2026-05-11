@@ -105,7 +105,7 @@ func run(cfg *config.Config) error {
 		if err = db.Close(); err != nil {
 			app.Logger.Info("failed to close database", zap.Error(err))
 		} else {
-			app.Logger.Info("database connection gracefully closed")
+			app.Logger.Info("database connection closed gracefully ")
 		}
 	}
 
