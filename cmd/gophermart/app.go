@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"syscall"
+	"time"
 
 	au "github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/acrrual_utils"
 	"github.com/artni96/go-musthave-diploma-tpl/internal/gophermart/config"
@@ -65,8 +66,9 @@ func run(cfg *config.Config) error {
 		Handler: mainRouter,
 	}
 
-	shutdownCtx, shutdownCancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
-	defer shutdownCancel()
+	gsPeriod := time.Second * 5
+	gsCtx, gsCancel := context.WithTimeout(ctx, gsPeriod)
+	defer gsCancel()
 
 	go func() {
 		if cfg.UploadMechanics == true {
@@ -83,22 +85,31 @@ func run(cfg *config.Config) error {
 	}()
 
 	go func() {
-		wg := ordersserv.WorkersPool(&ctx, orderService, ordersQueue, &app)
+		wg := ordersserv.WorkersPool(&ctx, gsCtx, orderService, ordersQueue, &app)
 		defer wg.Wait()
 	}()
 
 	shutdownChan := make(chan os.Signal, 1)
-	signal.Notify(shutdownChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(shutdownChan, os.Interrupt)
 	<-shutdownChan
-	app.Logger.Info("shutting app down")
-
-	if err = db.Close(); err != nil {
-		app.Logger.Info("failed to close database", zap.Error(err))
-	} else {
-		app.Logger.Info("database connection gracefully closed")
+	app.Logger.Info("shutting app down", zap.Time("time", time.Now()))
+	go func() {
+		deadline, _ := gsCtx.Deadline()
+		for i := deadline.Second() - time.Now().Second(); i > 0; i-- {
+			app.Logger.Info(fmt.Sprintf("app shutdown in %d seconds", i))
+			time.Sleep(1 * time.Second)
+		}
+	}()
+	select {
+	case <-gsCtx.Done():
+		if err = db.Close(); err != nil {
+			app.Logger.Info("failed to close database", zap.Error(err))
+		} else {
+			app.Logger.Info("database connection gracefully closed")
+		}
 	}
 
-	if err = newServer.Shutdown(shutdownCtx); err != nil {
+	if err = newServer.Shutdown(gsCtx); err != nil {
 		app.Logger.Info("failed to shutdown server", zap.Error(err))
 	} else {
 		app.Logger.Info("server stopped gracefully")

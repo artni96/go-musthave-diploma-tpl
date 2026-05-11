@@ -27,29 +27,33 @@ type OrderAccrualResponse struct {
 	Accrual float64 `json:"accrual"`
 }
 
-func WorkersPool(ctx *context.Context, orderService OrderServiceInterface, orderQueue <-chan model.OrderQueue, app *config.App) *sync.WaitGroup {
+func WorkersPool(ctx *context.Context, gsCtx context.Context, orderService OrderServiceInterface, orderQueue <-chan model.OrderQueue, app *config.App) *sync.WaitGroup {
 	var wg sync.WaitGroup
 
 	for i := 0; i < runtime.NumCPU(); i++ {
 
-		app.Logger.Debug("worker waiting for task", zap.Int("Worker number", i))
-		wg.Go(func() { orderWorker(ctx, orderService, orderQueue, app) })
+		app.Logger.Debug("worker initialized", zap.Int("worker number", i))
+		wg.Go(func() { orderWorker(ctx, gsCtx, i, orderService, orderQueue, app) })
 	}
 	return &wg
 }
 
-func orderWorker(ctx *context.Context, service OrderServiceInterface, orderQueue <-chan model.OrderQueue, app *config.App) {
+func orderWorker(ctx *context.Context, gsCtx context.Context, workNum int, service OrderServiceInterface, orderQueue <-chan model.OrderQueue, app *config.App) {
 
 	for order := range orderQueue {
 
 		timeOutCtx, cancel := context.WithTimeout(*ctx, time.Second*10)
 		select {
 		case <-timeOutCtx.Done():
-			app.Logger.Info("time is out", zap.Int("order number", order.Number), zap.Error(timeOutCtx.Err()))
+			app.Logger.Debug("time is out", zap.Int("worker number", workNum), zap.Int("order number", order.Number), zap.Error(timeOutCtx.Err()))
 			_ = service.UpdateStatus(*ctx, model.OrderStatusUpdateRequest{
 				Number: strconv.Itoa(order.Number),
 				Status: "PROCESSED",
 			})
+			cancel()
+			return
+		case <-gsCtx.Done():
+			app.Logger.Debug("shutdown signal received, shutting worker down", zap.Int("worker number", workNum), zap.Int("order number", order.Number), zap.Error(gsCtx.Err()))
 			cancel()
 			return
 		default:
@@ -59,7 +63,7 @@ func orderWorker(ctx *context.Context, service OrderServiceInterface, orderQueue
 			orderData, err := checkOrderStatusInAccrual(timeOutCtx, app.Config, orderNumber, app.Logger)
 			if err != nil {
 				if errors.Is(err, ErrOrderNotFound) {
-					app.Logger.Debug("order has not been registered", zap.Int("OrderNumber", orderNumber))
+					app.Logger.Debug("order has not been registered", zap.Int("orderNumber", orderNumber))
 					statusCode, err := registerInAccrual(timeOutCtx, app.Config, orderNumber, app.Logger)
 					if err != nil {
 						err = service.UpdateStatus(*ctx, model.OrderStatusUpdateRequest{
@@ -67,10 +71,10 @@ func orderWorker(ctx *context.Context, service OrderServiceInterface, orderQueue
 							Status: "INVALID",
 						})
 						if err != nil {
-							app.Logger.Debug("failed to change order status", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber), zap.String("status to change", "INVALID"))
+							app.Logger.Debug("failed to change order status", zap.Error(err), zap.String("userID", userID), zap.Int("orderNumber", orderNumber), zap.String("status to change", "INVALID"))
 							return
 						}
-						app.Logger.Debug("failed to register in accrual", zap.Error(err), zap.String("UserID", userID), zap.Int("OrderNumber", orderNumber))
+						app.Logger.Debug("failed to register in accrual", zap.Error(err), zap.String("userID", userID), zap.Int("orderNumber", orderNumber))
 						return
 					}
 
