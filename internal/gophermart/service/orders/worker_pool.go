@@ -46,6 +46,10 @@ func orderWorker(ctx *context.Context, service OrderServiceInterface, orderQueue
 		select {
 		case <-timeOutCtx.Done():
 			app.Logger.Info("time is out", zap.Int("order number", order.Number), zap.Error(timeOutCtx.Err()))
+			_ = service.UpdateStatus(*ctx, model.OrderStatusUpdateRequest{
+				Number: strconv.Itoa(order.Number),
+				Status: "PROCESSED",
+			})
 			cancel()
 			return
 		default:
@@ -78,7 +82,7 @@ func orderWorker(ctx *context.Context, service OrderServiceInterface, orderQueue
 						})
 
 						if err != nil {
-							service.UpdateStatus(*ctx, model.OrderStatusUpdateRequest{
+							_ = service.UpdateStatus(*ctx, model.OrderStatusUpdateRequest{
 								Number: strconv.Itoa(orderNumber),
 								Status: "INVALID",
 							})
@@ -122,7 +126,7 @@ func registerInAccrual(ctx context.Context, cfg *config.Config, orderNumber int,
 	}
 
 	accrualRegisterOrderURL := fmt.Sprintf("%s/api/orders", cfg.AccrualSystemAddress)
-	//registerOrderReq, err := http.Post(accrualRegisterOrderURL, "application/json", reader)
+
 	registerOrderReq, err := http.NewRequestWithContext(ctx, http.MethodPost, accrualRegisterOrderURL, bytes.NewReader(body))
 	if err != nil {
 		logger.Debug("failed to register a new order via accrual system", zap.Error(err), zap.Int("orderNumber", orderNumber))
@@ -142,7 +146,7 @@ func registerInAccrual(ctx context.Context, cfg *config.Config, orderNumber int,
 
 func checkOrderStatusInAccrual(ctx context.Context, cfg *config.Config, orderNumber int, logger *zap.Logger) (OrderAccrualResponse, error) {
 	var respBody OrderAccrualResponse
-	//orderStatusReq, err := http.Get(fmt.Sprintf("%s/api/orders/%d", cfg.AccrualSystemAddress, orderNumber))
+
 	accrualOrderStatusURL := fmt.Sprintf("%s/api/orders/%d", cfg.AccrualSystemAddress, orderNumber)
 	orderStatusReq, err := http.NewRequestWithContext(ctx, http.MethodGet, accrualOrderStatusURL, nil)
 	if err != nil {
