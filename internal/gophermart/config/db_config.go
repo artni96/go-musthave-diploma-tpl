@@ -25,9 +25,9 @@ func InitDBConnection(ctx context.Context, cfg *Config, upgradeDB bool, logger *
 	defer cancel()
 
 	isConnected := false
-	for i := 1; i <= 10; i++ {
+	for i := 0; i <= 9; i++ {
 		time.Sleep(time.Duration(i) * time.Second)
-		logger.Info("connecting to database", zap.Int("attempt", i))
+		logger.Info("connecting to database", zap.Int("attempt", i+1))
 		err = db.PingContext(pingCtx)
 		if err == nil {
 			isConnected = true
