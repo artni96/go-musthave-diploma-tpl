@@ -26,40 +26,14 @@ type Config struct {
 
 func ParseFlags() (*Config, error) {
 
-	fs := flag.NewFlagSet("fs", flag.ExitOnError)
 	config := &Config{}
 
-	fs.StringVar(&config.RunAddress, "a", "localhost:8081", "run address")
-	fs.StringVar(&config.DatabaseURI, "d", "", "database URI")
-	fs.StringVar(&config.AccrualSystemAddress, "r", "http://localhost:8080", "accrual system address")
-	docs.SwaggerInfo.Host = config.RunAddress
-
-	err := fs.Parse(os.Args[1:])
-	if err != nil {
-		return nil, err
-	}
-
-	envRunAddress, ok := os.LookupEnv("RUN_ADDRESS")
-	if ok {
-		config.RunAddress = envRunAddress
-		docs.SwaggerInfo.Host = envRunAddress
-	}
-
-	envDatabaseURI, ok := os.LookupEnv("DATABASE_URI")
-	if ok {
-		config.DatabaseURI = envDatabaseURI
-	}
-
-	envAccrualSystemAddress, ok := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS")
-	if ok {
-		config.AccrualSystemAddress = envAccrualSystemAddress
-	}
 	config.SecretKey = "secret"
 	config.Debug = false
 	config.TokenExp = time.Minute * 5
 	config.UploadMechanics = false
 
-	err = godotenv.Load(".env")
+	err := godotenv.Load(".env")
 	if err == nil {
 
 		envFileDBHost, envFileDBHostOk := os.LookupEnv("DB_HOST")
@@ -96,6 +70,34 @@ func ParseFlags() (*Config, error) {
 
 	} else {
 		log.Println(".env file not found, keep working with default values")
+	}
+
+	fs := flag.NewFlagSet("fs", flag.ExitOnError)
+
+	fs.StringVar(&config.RunAddress, "a", "localhost:8081", "run address")
+	fs.StringVar(&config.DatabaseURI, "d", "", "database URI")
+	fs.StringVar(&config.AccrualSystemAddress, "r", "http://localhost:8080", "accrual system address")
+	docs.SwaggerInfo.Host = config.RunAddress
+
+	err = fs.Parse(os.Args[1:])
+	if err != nil {
+		return nil, err
+	}
+
+	envRunAddress, ok := os.LookupEnv("RUN_ADDRESS")
+	if ok {
+		config.RunAddress = envRunAddress
+		docs.SwaggerInfo.Host = envRunAddress
+	}
+
+	envDatabaseURI, ok := os.LookupEnv("DATABASE_URI")
+	if ok {
+		config.DatabaseURI = envDatabaseURI
+	}
+
+	envAccrualSystemAddress, ok := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS")
+	if ok {
+		config.AccrualSystemAddress = envAccrualSystemAddress
 	}
 	return config, nil
 }
