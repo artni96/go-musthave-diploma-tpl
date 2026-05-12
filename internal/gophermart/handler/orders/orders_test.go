@@ -27,7 +27,6 @@ import (
 )
 
 func initConfig() (*context.Context, *sqlx.DB, *config.Config) {
-	//testDBDSN := "host=localhost port=5432 user=test password=test dbname=gophermart_test sslmode=disable"
 	testDBDSN := config.TestsDBDSN()
 	cfg := config.Config{
 		DatabaseURI: testDBDSN,
