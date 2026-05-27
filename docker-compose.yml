@@ -1,0 +1,52 @@
+services:
+  accrual-system:
+    image: ubuntu:22.04
+    platform: linux/amd64
+    command: bash -c "ls -la /app/cmd/accrual/ && /app/cmd/accrual/accrual_linux_amd64 -a :${INNER_ACCRUAL_SYSTEM_PORT}"
+    volumes:
+      - .:/app
+    networks:
+      - gophermart-network
+    container_name: accrual-system
+    ports:
+      - "${OUTER_ACCRUAL_SYSTEM_PORT}:${INNER_ACCRUAL_SYSTEM_PORT}"
+
+    working_dir: /app
+
+  gophermart-db:
+    image: postgres:latest
+    restart: always
+    container_name: gophermart-db
+
+    depends_on:
+      - accrual-system
+
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${OUTER_DB_PORT}:${INNER_DB_PORT}"
+    networks:
+      - gophermart-network
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+  gophermart:
+    build: .
+    ports:
+      - "${OUTER_APP_PORT}:${INNER_APP_PORT}"
+    depends_on:
+      - gophermart-db
+    container_name: gophermart-app
+
+    networks:
+      - gophermart-network
+
+volumes:
+  postgres_data:
+
+networks:
+  gophermart-network:
+    driver: bridge
+    name: gophermart-network
